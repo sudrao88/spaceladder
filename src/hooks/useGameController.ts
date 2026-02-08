@@ -1,4 +1,5 @@
 import { useGameStore } from '../store/useGameStore';
+import type { Player } from '../store/useGameStore';
 
 export const GameController = () => {
   const { 
@@ -8,10 +9,6 @@ export const GameController = () => {
     teleportPlayer,
   } = useGameStore();
 
-  // We need a way to listen for when a specific player finishes moving.
-  // The Rocket component calls onMovementComplete.
-  // But we need a centralized handler to trigger the wormhole check.
-  
   const handleMovementComplete = (playerId: number) => {
     // Only proceed if the player was actually in a "moving" state
     const player = players.find(p => p.id === playerId);
@@ -26,7 +23,7 @@ export const GameController = () => {
     }, 500);
   };
 
-  const checkWormhole = (player: any) => {
+  const checkWormhole = (player: Player) => {
       const currentTile = player.position;
       
       // No wormholes on start or finish
