@@ -15,56 +15,49 @@ export interface TileData {
 
 export const getBoardTiles = (): TileData[] => {
     const tiles: TileData[] = [];
-    
+
     for (let i = 0; i < 100; i++) {
-        // Start from bottom row (9) up to top row (0)
-        // i=0..9 -> row 9.
-        // i=90..99 -> row 0.
         const row = (BOARD_HEIGHT - 1) - Math.floor(i / BOARD_WIDTH);
         let col = i % BOARD_WIDTH;
-        
-        // Snake pattern logic
-        // We want 1 (row 9, bottom) at Left. So Row 9 is L->R.
-        // Row 8 is R->L.
-        // Row 0 is R->L.
-        // Parity: 9 is Odd. 8 is Even. 0 is Even.
-        // So Even rows are flipped (R->L). Odd rows are L->R.
-        
+
+        // Snake pattern: even rows are R->L, odd rows are L->R
         if (row % 2 === 0) {
             col = BOARD_WIDTH - 1 - col;
         }
 
-        // Calculate world position
-        // Center the board around (0,0,0)
         const x = (col - (BOARD_WIDTH - 1) / 2) * (TILE_SIZE + TILE_GAP);
         const z = (row - (BOARD_HEIGHT - 1) / 2) * (TILE_SIZE + TILE_GAP);
 
-        tiles.push({
-            id: i + 1,
-            col,
-            row,
-            x,
-            z
-        });
+        tiles.push({ id: i + 1, col, row, x, z });
     }
     return tiles;
 };
 
-// Cache the tiles since they are static
+// Cache tiles since they are static
 let cachedTiles: TileData[] | null = null;
+// O(1) position lookup map: tileId -> [x, y, z]
+let tilePositionMap: Map<number, [number, number, number]> | null = null;
 
-export const getCachedBoardTiles = () => {
+export const getCachedBoardTiles = (): TileData[] => {
     if (!cachedTiles) {
         cachedTiles = getBoardTiles();
     }
     return cachedTiles;
 };
 
-export const getTilePosition = (tileId: number): [number, number, number] => {
-    const tiles = getCachedBoardTiles();
-    const tile = tiles.find(t => t.id === tileId);
-    if (tile) {
-        return [tile.x, 0, tile.z];
+const ensurePositionMap = (): Map<number, [number, number, number]> => {
+    if (!tilePositionMap) {
+        const tiles = getCachedBoardTiles();
+        tilePositionMap = new Map();
+        for (const tile of tiles) {
+            tilePositionMap.set(tile.id, [tile.x, 0, tile.z]);
+        }
     }
-    return [0, 0, 0];
+    return tilePositionMap;
+};
+
+const DEFAULT_POS: [number, number, number] = [0, 0, 0];
+
+export const getTilePosition = (tileId: number): [number, number, number] => {
+    return ensurePositionMap().get(tileId) ?? DEFAULT_POS;
 };
