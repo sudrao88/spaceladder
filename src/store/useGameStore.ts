@@ -85,7 +85,7 @@ export const useGameStore = create<GameState>()(
         const { isRolling, gameStatus } = get();
         if (isRolling || gameStatus !== 'playing') return;
 
-        set({ isRolling: true });
+        set({ isRolling: true, diceValue: null });
         
         // Simulate rolling delay
         setTimeout(() => {
@@ -93,11 +93,14 @@ export const useGameStore = create<GameState>()(
           
           set({ diceValue: roll, isRolling: false });
           
-          const { players, currentPlayerIndex } = get();
-          const currentPlayer = players[currentPlayerIndex];
-          
-          // Trigger movement
-          get().movePlayer(currentPlayer.id, roll);
+          // Wait a bit AFTER the dice stops and shows the value before moving the player
+          setTimeout(() => {
+            const { players, currentPlayerIndex } = get();
+            const currentPlayer = players[currentPlayerIndex];
+            
+            // Trigger movement
+            get().movePlayer(currentPlayer.id, roll);
+          }, 800); // Small pause for the player to see the number
         }, 1000);
       },
 
@@ -114,12 +117,6 @@ export const useGameStore = create<GameState>()(
         // Block if roll exceeds 100
         if (targetPos > 100) {
              // Turn ends immediately if overshot
-             // We set isMoving=true momentarily to trigger the cycle, but position stays same
-             // The Rocket component needs to handle a 'move' to the SAME position gracefully
-             // (lifting up and landing back down)
-             //  Actually, if we don't change position, Rocket won't animate.
-             //  So we just skip turn for now? Or implement a "bounce" animation later.
-             //  Let's just pass turn.
              get().nextTurn();
              return;
         }
@@ -170,12 +167,13 @@ export const useGameStore = create<GameState>()(
         const currentPlayer = players[currentPlayerIndex];
 
         // Check win condition
-        if (currentPlayer.position === 100) {
+        if (currentPlayer && currentPlayer.position === 100) {
             set({ gameStatus: 'finished', winner: currentPlayer });
             return;
         }
 
         const nextIndex = (currentPlayerIndex + 1) % players.length;
+        // RESET DICE ONLY HERE - When turn actually ends
         set({ currentPlayerIndex: nextIndex, diceValue: null });
       },
       

@@ -25,9 +25,9 @@ export const GameController = () => {
       const isWormhole = Math.random() < 0.25;
 
       if (isWormhole) {
-          let destination = Math.floor(Math.random() * 99) + 1; // 1 to 99
-          if (destination === 100) destination = 99;
-
+          // Destination between 2 and 99 (inclusive) to avoid sending to tile 1 or 100
+          let destination = Math.floor(Math.random() * 98) + 2; 
+          
           if (destination === currentTile) {
                nextTurn();
                return;

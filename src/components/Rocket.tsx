@@ -12,7 +12,7 @@ interface RocketProps {
 const ROCKET_ROTATION: [number, number, number] = [-Math.PI / 2, 0, 0];
 const SPRING_CONFIG = { mass: 1, tension: 170, friction: 26 };
 const SCALE_SPRING_CONFIG = { mass: 1, tension: 300, friction: 20 };
-const LIFTED_SCALE = 1.3;
+const LIFTED_SCALE = 1.5; // Increased from 1.3
 const LANDED_SCALE = 1.0;
 
 type Phase = 'idle' | 'lifting' | 'moving' | 'landing';
@@ -128,8 +128,11 @@ export const Rocket = memo(({ player, onMovementComplete }: RocketProps) => {
       };
   }, [emojiTexture]);
 
+  // Handle visibility: token is invisible if at tile 1 and not currently moving/lifting
+  const isVisible = player.position > 1 || phase !== 'idle';
+
   return (
-    <animated.group position={position} scale={s}>
+    <animated.group position={position} scale={s} visible={isVisible}>
       <mesh rotation={ROCKET_ROTATION}>
         <planeGeometry args={[1.0, 1.0]} />
         <meshBasicMaterial
