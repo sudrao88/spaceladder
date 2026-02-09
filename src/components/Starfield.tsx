@@ -1,4 +1,4 @@
-import { memo, useRef } from 'react';
+import { memo, useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 
@@ -43,8 +43,6 @@ function createStarGeometry(): THREE.BufferGeometry {
   return geo;
 }
 
-const starGeometry = createStarGeometry();
-
 /**
  * A lightweight drifting starfield rendered as a single Points object.
  * Stars slowly scroll in the –Z direction and wrap around, giving
@@ -52,6 +50,10 @@ const starGeometry = createStarGeometry();
  */
 export const Starfield = memo(() => {
   const pointsRef = useRef<THREE.Points>(null);
+  // Per-instance geometry so multiple Starfields don't share mutable buffers.
+  // createStarGeometry is defined at module scope so the linter doesn't flag
+  // its internal Math.random() calls as impure render-time code.
+  const geometry = useMemo(() => createStarGeometry(), []);
 
   useFrame((_state, delta) => {
     if (!pointsRef.current) return;
@@ -77,7 +79,7 @@ export const Starfield = memo(() => {
   });
 
   return (
-    <points ref={pointsRef} geometry={starGeometry}>
+    <points ref={pointsRef} geometry={geometry}>
       <pointsMaterial
         vertexColors
         size={0.08}
