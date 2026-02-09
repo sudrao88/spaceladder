@@ -1,6 +1,8 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
+const POST_TELEPORT_DELAY_MS = 800;
+
 export type PlayerColor = 'red' | 'blue' | 'green' | 'yellow';
 
 export interface Player {
@@ -146,7 +148,7 @@ export const useGameStore = create<GameState>()(
         set({ pendingWormhole: null });
         setTimeout(() => {
           get().nextTurn();
-        }, 800);
+        }, POST_TELEPORT_DELAY_MS);
       },
 
       setMoving: (playerId, isMoving) => {

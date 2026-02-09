@@ -1,4 +1,4 @@
-import { memo, useState, useCallback, useMemo } from 'react';
+import { memo, useState, useCallback, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGameStore } from '../store/useGameStore';
 import { PLAYER_EMOJIS } from '../utils/boardUtils';
@@ -53,6 +53,8 @@ const WarpStar = memo(({ angle, delay, length }: StarProps) => {
 
 WarpStar.displayName = 'WarpStar';
 
+const WARP_ANIMATION_DURATION_MS = 1400;
+
 export const WormholeDialog = memo(() => {
   const pendingWormhole = useGameStore(selectPendingWormhole);
   const executeTeleport = useGameStore(selectExecuteTeleport);
@@ -69,13 +71,17 @@ export const WormholeDialog = memo(() => {
 
   const handleTeleport = useCallback(() => {
     setIsWarping(true);
+  }, []);
 
-    // Let the warp animation play, then execute teleport
-    setTimeout(() => {
+  // Execute teleport after warp animation completes; clean up on unmount
+  useEffect(() => {
+    if (!isWarping) return;
+    const timer = setTimeout(() => {
       executeTeleport();
       setIsWarping(false);
-    }, 1400);
-  }, [executeTeleport]);
+    }, WARP_ANIMATION_DURATION_MS);
+    return () => clearTimeout(timer);
+  }, [isWarping, executeTeleport]);
 
   // Derive visibility from store state — no effect needed
   const isVisible = pendingWormhole !== null;
