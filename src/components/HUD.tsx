@@ -16,6 +16,8 @@ const selectWinner = (s: ReturnType<typeof useGameStore.getState>) => s.winner;
 const selectSetupGame = (s: ReturnType<typeof useGameStore.getState>) => s.setupGame;
 const selectRollDice = (s: ReturnType<typeof useGameStore.getState>) => s.rollDice;
 const selectResetGame = (s: ReturnType<typeof useGameStore.getState>) => s.resetGame;
+const selectIsDefaultView = (s: ReturnType<typeof useGameStore.getState>) => s.isDefaultView;
+const selectTriggerCameraReset = (s: ReturnType<typeof useGameStore.getState>) => s.triggerCameraReset;
 
 const SetupScreen = memo(() => {
   const setupGame = useGameStore(selectSetupGame);
@@ -136,6 +138,26 @@ const DicePanel = memo(() => {
 
 DicePanel.displayName = 'DicePanel';
 
+const ResetViewButton = memo(() => {
+    const isDefaultView = useGameStore(selectIsDefaultView);
+    const triggerCameraReset = useGameStore(selectTriggerCameraReset);
+    
+    if (isDefaultView) return null;
+    
+    return (
+        <div className="absolute bottom-6 left-6 pointer-events-auto">
+             <button
+                onClick={triggerCameraReset}
+                className="bg-gray-800/80 hover:bg-gray-700 text-white px-4 py-2 rounded shadow-lg border border-white/20 transition-all"
+             >
+                Reset View
+             </button>
+        </div>
+    );
+});
+
+ResetViewButton.displayName = 'ResetViewButton';
+
 export const HUD = memo(() => {
   const gameStatus = useGameStore(selectGameStatus);
   const currentPlayerIndex = useGameStore(selectCurrentPlayerIndex);
@@ -153,6 +175,7 @@ export const HUD = memo(() => {
       <PlayerList currentPlayerIndex={currentPlayerIndex} />
       <DicePanel />
       <WormholeDialog />
+      <ResetViewButton />
     </div>
   );
 });

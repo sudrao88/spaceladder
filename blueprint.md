@@ -24,6 +24,12 @@ Wormhole Warp is a modern, 3D/2D web-based board game built with React, Three.js
     *   **Player List:** Top-Left corner, showing active player and positions.
     *   **Controls:** Right sidebar (compact width), containing the Dice and Roll button.
     *   **Dice:** A fully 3D animated dice embedded in the HUD using a separate `Canvas`.
+    *   **Reset View Button:** Bottom-Left corner (only visible when zoomed/panned), now part of the HUD layer to ensure constant visibility.
+*   **Wormhole Dialog:**
+    *   A modal dialog that appears when a player lands on a wormhole.
+    *   Shows a "Boost" or "Glitch" message based on the outcome.
+    *   Features a "Teleport" button to trigger the warp animation.
+    *   Includes a "Warping..." animation with star streaks and a shaking emoji.
 *   **Responsiveness:**
     *   **Centering:** Board is always centered in the viewport.
     *   **Mobile:** Enforces landscape mode via an overlay on portrait screens.
@@ -32,7 +38,7 @@ Wormhole Warp is a modern, 3D/2D web-based board game built with React, Three.js
 ### Technical Stack
 *   **Framework:** React (Vite).
 *   **3D Engine:** @react-three/fiber, @react-three/drei.
-*   **Animation:** @react-spring/three.
+*   **Animation:** @react-spring/three, framer-motion.
 *   **State Management:** Zustand (persisted state).
 *   **Styling:** Tailwind CSS.
 
@@ -52,8 +58,18 @@ Wormhole Warp is a modern, 3D/2D web-based board game built with React, Three.js
     *   Converted tokens from simple shapes to Emoji-based textures.
     *   Implemented `CanvasTexture` generation for Emojis to ensure they render correctly in the 3D scene without CSS layering issues.
     *   Removed text labels from the tokens on the board (kept in HUD).
+    
+4.  **Wormhole Dialog Implementation:**
+    *   Added `WormholeDialog` component to handle wormhole interactions.
+    *   Integrated framer-motion for smooth animations.
+    *   Added visual feedback for "Boost" (Cyan) and "Glitch" (Purple) events.
 
-4.  **Bug Fixes & Polish:**
+5.  **Reset View Button Fix:**
+    *   Moved the "Reset View" button from inside the 3D Canvas (`<Html>`) to the external `HUD` component.
+    *   Updated `useGameStore` to manage camera state (`isDefaultView`, `shouldResetCamera`) to bridge the UI and the Canvas.
+    *   Ensured the button remains visible and functional even when the user zooms in significantly.
+
+6.  **Bug Fixes & Polish:**
     *   Fixed `useGameController` import error (Type-only import).
     *   Fixed HUD style conflict (shorthand vs longhand border properties).
     *   Ensured "Reset View" button position is stable.
