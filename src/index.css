@@ -11,3 +11,43 @@ html, body, #root {
   background-color: #050510; /* Dark void background */
   font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
 }
+
+/* ── Wormhole Dialog: pulsing ring ────────────────────────────── */
+.wormhole-ring {
+  position: absolute;
+  inset: -18px;
+  border-radius: 50%;
+  border: 2px solid var(--ring-color, rgba(6,182,212,0.6));
+  animation: wormhole-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes wormhole-pulse {
+  0%, 100% { transform: scale(0.85); opacity: 0.4; }
+  50%      { transform: scale(1.2);  opacity: 1; }
+}
+
+/* ── Warp tunnel: stars streaking outward from centre ─────────── */
+.warp-tunnel {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+.warp-star {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 2px;
+  height: var(--length, 60px);
+  background: linear-gradient(to bottom, rgba(255,255,255,0), rgba(255,255,255,0.9));
+  transform-origin: top center;
+  transform: rotate(var(--angle, 0deg)) translateY(0);
+  opacity: 0;
+  animation: warp-streak 0.8s var(--delay, 0s) ease-in infinite;
+}
+
+@keyframes warp-streak {
+  0%   { opacity: 0; transform: rotate(var(--angle, 0deg)) translateY(0) scaleY(0.2); }
+  30%  { opacity: 1; }
+  100% { opacity: 0; transform: rotate(var(--angle, 0deg)) translateY(140px) scaleY(1); }
+}

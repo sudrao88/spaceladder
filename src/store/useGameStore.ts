@@ -1,6 +1,8 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
+const POST_TELEPORT_DELAY_MS = 800;
+
 export type PlayerColor = 'red' | 'blue' | 'green' | 'yellow';
 
 export interface Player {
@@ -10,6 +12,12 @@ export interface Player {
   isMoving: boolean;
 }
 
+export interface PendingWormhole {
+  playerId: number;
+  destination: number;
+  isBoost: boolean;
+}
+
 interface GameState {
   players: Player[];
   currentPlayerIndex: number;
@@ -17,12 +25,15 @@ interface GameState {
   isRolling: boolean;
   gameStatus: 'setup' | 'playing' | 'finished';
   winner: Player | null;
+  pendingWormhole: PendingWormhole | null;
 
   // Actions
   setupGame: (playerCount: number) => void;
   rollDice: () => void;
   movePlayer: (playerId: number, steps: number) => void;
   teleportPlayer: (playerId: number, targetTile: number) => void;
+  setPendingWormhole: (wormhole: PendingWormhole | null) => void;
+  executeTeleport: () => void;
   nextTurn: () => void;
   setMoving: (playerId: number, isMoving: boolean) => void;
   resetGame: () => void;
@@ -37,6 +48,7 @@ export const useGameStore = create<GameState>()(
       isRolling: false,
       gameStatus: 'setup',
       winner: null,
+      pendingWormhole: null,
 
       setupGame: (playerCount) => {
         const colors: PlayerColor[] = ['red', 'blue', 'green', 'yellow'];
@@ -124,6 +136,21 @@ export const useGameStore = create<GameState>()(
         }));
       },
 
+      setPendingWormhole: (wormhole) => {
+        set({ pendingWormhole: wormhole });
+      },
+
+      executeTeleport: () => {
+        const { pendingWormhole } = get();
+        if (!pendingWormhole) return;
+        const { playerId, destination } = pendingWormhole;
+        get().teleportPlayer(playerId, destination);
+        set({ pendingWormhole: null });
+        setTimeout(() => {
+          get().nextTurn();
+        }, POST_TELEPORT_DELAY_MS);
+      },
+
       setMoving: (playerId, isMoving) => {
          set((state) => ({
           players: state.players.map(p => p.id === playerId ? { ...p, isMoving } : p)
@@ -145,7 +172,7 @@ export const useGameStore = create<GameState>()(
       },
       
       resetGame: () => {
-          set({ gameStatus: 'setup', players: [], winner: null, diceValue: null });
+          set({ gameStatus: 'setup', players: [], winner: null, diceValue: null, pendingWormhole: null });
       }
     }),
     {
