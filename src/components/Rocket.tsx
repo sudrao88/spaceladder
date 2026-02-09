@@ -11,22 +11,81 @@ interface RocketProps {
 
 const ROCKET_ROTATION: [number, number, number] = [-Math.PI / 2, 0, 0];
 const SPRING_CONFIG = { mass: 1, tension: 170, friction: 26 };
+const SCALE_SPRING_CONFIG = { mass: 1, tension: 300, friction: 20 };
+const LIFTED_SCALE = 1.3;
+const LANDED_SCALE = 1.0;
+
+type Phase = 'idle' | 'lifting' | 'moving' | 'landing';
 
 export const Rocket = memo(({ player, onMovementComplete }: RocketProps) => {
-  const targetPos = getTilePosition(player.position);
-  // Lift slightly (0.1) to be above board
-  const rocketTarget: [number, number, number] = [targetPos[0], 0.1, targetPos[2]];
+  const rocketTarget = useMemo<[number, number, number]>(() => {
+    const pos = getTilePosition(player.position);
+    return [pos[0], 0.1, pos[2]];
+  }, [player.position]);
 
-  const [currentPos] = useState(rocketTarget);
+  const [phase, setPhase] = useState<Phase>('idle');
+  const [initialPos] = useState(rocketTarget);
+  const [preMovePos, setPreMovePos] = useState(rocketTarget);
+  const [prevIsMoving, setPrevIsMoving] = useState(false);
+  const [trackedPosition, setTrackedPosition] = useState(player.position);
+
+  // --- Adjust state during render (React-recommended pattern) ---
+  let startedLifting = false;
+
+  // 1. Detect isMoving false→true transition → begin lift
+  if (player.isMoving && !prevIsMoving) {
+    setPrevIsMoving(true);
+    if (phase === 'idle') {
+      setPhase('lifting');
+      startedLifting = true;
+    }
+  }
+  if (!player.isMoving && prevIsMoving) {
+    setPrevIsMoving(false);
+  }
+
+  // 2. Track store position changes while idle (teleport / reset / initial)
+  if (player.position !== trackedPosition) {
+    setTrackedPosition(player.position);
+    if (phase === 'idle' && !startedLifting) {
+      setPreMovePos(rocketTarget);
+    }
+  }
+
+  // --- Derive spring targets from state ---
+  // During lifting: hold at pre-move position; otherwise follow the store position
+  const positionTarget = phase === 'lifting' ? preMovePos : rocketTarget;
+  // Enlarged while airborne (lifting + moving), normal while grounded (landing + idle)
+  const scaleTarget = phase === 'lifting' || phase === 'moving' ? LIFTED_SCALE : LANDED_SCALE;
+
+  const { s } = useSpring({
+    s: scaleTarget,
+    config: SCALE_SPRING_CONFIG,
+    onRest: () => {
+      setPhase((current) => {
+        if (current === 'lifting') {
+          // Same-tile bounce-back: skip move, go straight to landing
+          if (preMovePos[0] === rocketTarget[0] && preMovePos[2] === rocketTarget[2]) {
+            return 'landing';
+          }
+          return 'moving';
+        }
+        if (current === 'landing') {
+          setPreMovePos(rocketTarget);
+          onMovementComplete();
+          return 'idle';
+        }
+        return current;
+      });
+    }
+  });
 
   const { position } = useSpring({
-    position: rocketTarget,
-    from: { position: currentPos },
+    position: positionTarget,
+    from: { position: initialPos },
     config: SPRING_CONFIG,
     onRest: () => {
-        if (player.isMoving) {
-            onMovementComplete();
-        }
+      setPhase((current) => (current === 'moving' ? 'landing' : current));
     }
   });
 
@@ -58,7 +117,7 @@ export const Rocket = memo(({ player, onMovementComplete }: RocketProps) => {
   }, [emojiTexture]);
 
   return (
-    <animated.group position={position}>
+    <animated.group position={position} scale={s}>
       <mesh rotation={ROCKET_ROTATION}>
         <planeGeometry args={[1.0, 1.0]} />
         <meshBasicMaterial
