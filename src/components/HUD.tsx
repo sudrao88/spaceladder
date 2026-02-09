@@ -78,10 +78,9 @@ const PlayerList = memo(({ currentPlayerIndex }: PlayerListProps) => {
       {players.map((p, idx) => (
         <div
           key={p.id}
-          className={`flex items-center gap-2 px-3 py-1.5 rounded-lg bg-black/50 backdrop-blur-md border border-l-4 transition-all
+          className={`flex items-center gap-2 px-3 py-1.5 rounded-lg bg-black/50 backdrop-blur-md border transition-all
               ${idx === currentPlayerIndex ? 'border-white scale-105 shadow-lg' : 'border-transparent opacity-70'}
           `}
-          style={{ borderLeftColor: p.color }}
         >
           <span className="text-xl" role="img" aria-label="player-token">
             {PLAYER_EMOJIS[p.id % PLAYER_EMOJIS.length]}
