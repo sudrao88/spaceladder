@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect, memo } from 'react';
 import { useSpring, animated } from '@react-spring/three';
 import * as THREE from 'three';
-import type { Player } from '../store/useGameStore';
+import { useGameStore, type Player } from '../store/useGameStore';
 import { getTilePosition, PLAYER_EMOJIS } from '../utils/boardUtils';
 
 interface RocketProps {
@@ -24,35 +24,30 @@ export const Rocket = memo(({ player, onMovementComplete }: RocketProps) => {
   }, [player.position]);
 
   const [phase, setPhase] = useState<Phase>('idle');
-  const [initialPos] = useState(rocketTarget);
   const [preMovePos, setPreMovePos] = useState(rocketTarget);
-  const [prevIsMoving, setPrevIsMoving] = useState(false);
-  const [trackedPosition, setTrackedPosition] = useState(player.position);
 
-  // --- Adjust state during render (React-recommended pattern) ---
-  let startedLifting = false;
+  // Subscribe to store for transition detection (setState in subscription callback is lint-safe)
+  useEffect(() => {
+    const unsub = useGameStore.subscribe((state, prevState) => {
+      const curr = state.players.find(p => p.id === player.id);
+      const prev = prevState.players.find(p => p.id === player.id);
+      if (!curr || !prev) return;
 
-  // 1. Detect isMoving false→true transition → begin lift
-  if (player.isMoving && !prevIsMoving) {
-    setPrevIsMoving(true);
-    if (phase === 'idle') {
-      setPhase('lifting');
-      startedLifting = true;
-    }
-  }
-  if (!player.isMoving && prevIsMoving) {
-    setPrevIsMoving(false);
-  }
+      // isMoving false→true → begin lift
+      if (curr.isMoving && !prev.isMoving) {
+        setPhase(p => (p === 'idle' ? 'lifting' : p));
+      }
 
-  // 2. Track store position changes while idle (teleport / reset / initial)
-  if (player.position !== trackedPosition) {
-    setTrackedPosition(player.position);
-    if (phase === 'idle' && !startedLifting) {
-      setPreMovePos(rocketTarget);
-    }
-  }
+      // Position changed while grounded (teleport / reset) → sync preMovePos
+      if (curr.position !== prev.position && !curr.isMoving) {
+        const pos = getTilePosition(curr.position);
+        setPreMovePos([pos[0], 0.1, pos[2]]);
+      }
+    });
+    return unsub;
+  }, [player.id]);
 
-  // --- Derive spring targets from state ---
+  // --- Derive spring targets from phase ---
   // During lifting: hold at pre-move position; otherwise follow the store position
   const positionTarget = phase === 'lifting' ? preMovePos : rocketTarget;
   // Enlarged while airborne (lifting + moving), normal while grounded (landing + idle)
@@ -82,7 +77,6 @@ export const Rocket = memo(({ player, onMovementComplete }: RocketProps) => {
 
   const { position } = useSpring({
     position: positionTarget,
-    from: { position: initialPos },
     config: SPRING_CONFIG,
     onRest: () => {
       setPhase((current) => (current === 'moving' ? 'landing' : current));
