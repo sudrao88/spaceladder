@@ -1,6 +1,6 @@
-import { useRef, useEffect, useState, useCallback, memo } from 'react';
+import { useRef, useEffect, useCallback, memo } from 'react';
 import { Canvas, useThree } from '@react-three/fiber';
-import { OrthographicCamera, MapControls, Html } from '@react-three/drei';
+import { OrthographicCamera, MapControls } from '@react-three/drei';
 import { Board } from './components/Board';
 import { Rocket } from './components/Rocket';
 import { HUD } from './components/HUD';
@@ -23,7 +23,13 @@ const CANVAS_DPR: [number, number] = [1, 2];
 const CameraController = memo(() => {
   const { camera, size } = useThree();
   const controlsRef = useRef<MapControlsType>(null);
-  const [isDefaultView, setIsDefaultView] = useState(true);
+  
+  const setIsDefaultView = useGameStore(state => state.setIsDefaultView);
+  const shouldResetCamera = useGameStore(state => state.shouldResetCamera);
+  const acknowledgeCameraReset = useGameStore(state => state.acknowledgeCameraReset);
+
+  // Keep track of last emitted state to avoid spamming the store
+  const lastIsDefaultRef = useRef(true);
 
   const calculateDefaultZoom = useCallback(() => {
      const padding = 40;
@@ -45,12 +51,22 @@ const CameraController = memo(() => {
         controlsRef.current.target.set(0, 0, 0);
         controlsRef.current.update();
      }
+     
      setIsDefaultView(true);
-  }, [calculateDefaultZoom, camera]);
+     lastIsDefaultRef.current = true;
+  }, [calculateDefaultZoom, camera, setIsDefaultView]);
 
   useEffect(() => {
      fitToScreen();
   }, [fitToScreen]);
+  
+  // Handle external reset trigger
+  useEffect(() => {
+    if (shouldResetCamera) {
+      fitToScreen();
+      acknowledgeCameraReset();
+    }
+  }, [shouldResetCamera, fitToScreen, acknowledgeCameraReset]);
 
   // Check if zoom/pan changed significantly from default
   useEffect(() => {
@@ -63,16 +79,20 @@ const CameraController = memo(() => {
           const zoomChanged = Math.abs(currentZoom - defaultZoom) > 0.1;
           const posChanged = Math.abs(currentTarget.x) > 0.5 || Math.abs(currentTarget.z) > 0.5;
 
-          setIsDefaultView(!zoomChanged && !posChanged);
+          const isDefault = !zoomChanged && !posChanged;
+          
+          if (isDefault !== lastIsDefaultRef.current) {
+             setIsDefaultView(isDefault);
+             lastIsDefaultRef.current = isDefault;
+          }
       };
 
       const interval = setInterval(checkZoom, 500);
       return () => clearInterval(interval);
-  }, [camera, calculateDefaultZoom]);
+  }, [camera, calculateDefaultZoom, setIsDefaultView]);
 
 
   return (
-     <>
        <MapControls
           ref={controlsRef}
           enableRotate={false}
@@ -81,20 +101,6 @@ const CameraController = memo(() => {
           minZoom={10}
           maxZoom={100}
        />
-
-       {!isDefaultView && (
-           <Html wrapperClass="pointer-events-none" fullscreen style={{ zIndex: 50 }}>
-              <div className="absolute bottom-6 left-6 pointer-events-auto">
-                 <button
-                    onClick={fitToScreen}
-                    className="bg-gray-800/80 hover:bg-gray-700 text-white px-4 py-2 rounded shadow-lg border border-white/20 transition-all"
-                 >
-                    Reset View
-                 </button>
-              </div>
-           </Html>
-       )}
-     </>
   );
 });
 

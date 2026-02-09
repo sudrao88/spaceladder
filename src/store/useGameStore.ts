@@ -1,8 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
-const POST_TELEPORT_DELAY_MS = 800;
-
 export type PlayerColor = 'red' | 'blue' | 'green' | 'yellow';
 
 export interface Player {
@@ -26,6 +24,10 @@ interface GameState {
   gameStatus: 'setup' | 'playing' | 'finished';
   winner: Player | null;
   pendingWormhole: PendingWormhole | null;
+  
+  // Camera State
+  isDefaultView: boolean;
+  shouldResetCamera: boolean;
 
   // Actions
   setupGame: (playerCount: number) => void;
@@ -37,7 +39,14 @@ interface GameState {
   nextTurn: () => void;
   setMoving: (playerId: number, isMoving: boolean) => void;
   resetGame: () => void;
+  
+  // Camera Actions
+  setIsDefaultView: (isDefault: boolean) => void;
+  triggerCameraReset: () => void;
+  acknowledgeCameraReset: () => void;
 }
+
+const POST_TELEPORT_DELAY_MS = 800;
 
 export const useGameStore = create<GameState>()(
   persist(
@@ -49,6 +58,8 @@ export const useGameStore = create<GameState>()(
       gameStatus: 'setup',
       winner: null,
       pendingWormhole: null,
+      isDefaultView: true,
+      shouldResetCamera: false,
 
       setupGame: (playerCount) => {
         const colors: PlayerColor[] = ['red', 'blue', 'green', 'yellow'];
@@ -96,24 +107,15 @@ export const useGameStore = create<GameState>()(
         // Calculate target position
         let targetPos = player.position + steps;
         
-        // If roll exceeds steps to 100, stay in current position
+        // If roll exceeds steps to 100, bounce back logic
         if (targetPos > 100) {
-            // Stay at current position
-            // We don't set isMoving=true so UI doesn't try to animate
-            // Just wait a bit and proceed to next turn
-            setTimeout(() => {
-                get().nextTurn();
-            }, 1000);
-            return;
+            const excess = targetPos - 100;
+            targetPos = 100 - excess;
         }
 
         set({
-          players: players.map(p => p.id === playerId ? { ...p, isMoving: true } : p)
+          players: players.map(p => p.id === playerId ? { ...p, isMoving: true, position: targetPos } : p)
         });
-        
-        set((state) => ({
-           players: state.players.map(p => p.id === playerId ? { ...p, position: targetPos } : p)
-        }));
       },
 
       teleportPlayer: (playerId, targetTile) => {
@@ -130,8 +132,14 @@ export const useGameStore = create<GameState>()(
         const { pendingWormhole } = get();
         if (!pendingWormhole) return;
         const { playerId, destination } = pendingWormhole;
+        
+        // Teleport the player
         get().teleportPlayer(playerId, destination);
+        
+        // Clear pending wormhole
         set({ pendingWormhole: null });
+        
+        // Wait a bit before next turn
         setTimeout(() => {
           get().nextTurn();
         }, POST_TELEPORT_DELAY_MS);
@@ -145,9 +153,9 @@ export const useGameStore = create<GameState>()(
 
       nextTurn: () => {
         const { players, currentPlayerIndex } = get();
-        
-        // Check win condition
         const currentPlayer = players[currentPlayerIndex];
+
+        // Check win condition
         if (currentPlayer.position === 100) {
             set({ gameStatus: 'finished', winner: currentPlayer });
             return;
@@ -159,7 +167,11 @@ export const useGameStore = create<GameState>()(
       
       resetGame: () => {
           set({ gameStatus: 'setup', players: [], winner: null, diceValue: null, pendingWormhole: null });
-      }
+      },
+
+      setIsDefaultView: (isDefault) => set({ isDefaultView: isDefault }),
+      triggerCameraReset: () => set({ shouldResetCamera: true }),
+      acknowledgeCameraReset: () => set({ shouldResetCamera: false }),
     }),
     {
       name: 'wormhole-warp-storage',
