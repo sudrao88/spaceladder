@@ -9,7 +9,7 @@ html, body, #root {
   padding: 0;
   overflow: hidden;
   background-color: #050510; /* Dark void background */
-  font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  font-family: 'Iceland', cursive, system-ui, sans-serif;
 }
 
 /* ── Wormhole Dialog: pulsing ring ────────────────────────────── */
