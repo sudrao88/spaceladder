@@ -1,4 +1,4 @@
-import { memo } from 'react';
+import { memo, useState } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { Dice } from './Dice';
 import { WormholeDialog } from './WormholeDialog';
@@ -52,7 +52,7 @@ const FinishedScreen = memo(() => {
     <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-black/90 text-white pointer-events-auto">
       <h1 className="text-5xl font-bold text-yellow-400 mb-4 animate-pulse">GAME OVER</h1>
       <h2 className="text-3xl mb-8">
-          Player <span style={{ color: winner?.color }}>{winner?.id! + 1}</span> Wins!
+          Player <span style={{ color: winner?.color }}>{(winner?.id ?? 0) + 1}</span> Wins!
       </h2>
       <button
         onClick={resetGame}
@@ -158,6 +158,58 @@ const ResetViewButton = memo(() => {
 
 ResetViewButton.displayName = 'ResetViewButton';
 
+const NewGameButton = memo(() => {
+    const [isDialogOpen, setIsDialogOpen] = useState(false);
+    const resetGame = useGameStore(selectResetGame);
+
+    const handleConfirm = () => {
+        resetGame();
+        setIsDialogOpen(false);
+    };
+
+    return (
+        <>
+            <div className="absolute top-4 right-4 pointer-events-auto">
+                <button
+                    onClick={() => setIsDialogOpen(true)}
+                    className="p-2 bg-gray-800/80 hover:bg-red-700 text-white rounded-full shadow-lg border border-white/20 transition-all flex items-center justify-center group"
+                    title="Start New Game"
+                >
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6 group-hover:rotate-180 transition-transform duration-500">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />
+                    </svg>
+                </button>
+            </div>
+
+            {isDialogOpen && (
+                <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm pointer-events-auto">
+                    <div className="bg-gray-900 border border-white/20 rounded-xl p-8 max-w-sm w-full shadow-2xl transform transition-all scale-100">
+                        <h3 className="text-xl font-bold text-white mb-4">Start New Game?</h3>
+                        <p className="text-gray-300 mb-6">Are you sure you want to discard the current game and start over?</p>
+                        <div className="flex justify-end gap-3">
+                            <button
+                                onClick={() => setIsDialogOpen(false)}
+                                className="px-4 py-2 text-gray-400 hover:text-white hover:bg-white/10 rounded transition-colors"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleConfirm}
+                                className="px-4 py-2 bg-red-600 hover:bg-red-500 text-white rounded font-medium shadow-lg shadow-red-500/20 transition-all"
+                            >
+                                Confirm
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+        </>
+    );
+});
+
+NewGameButton.displayName = 'NewGameButton';
+
+
 export const HUD = memo(() => {
   const gameStatus = useGameStore(selectGameStatus);
   const currentPlayerIndex = useGameStore(selectCurrentPlayerIndex);
@@ -173,6 +225,7 @@ export const HUD = memo(() => {
   return (
     <div className="absolute inset-0 z-10 pointer-events-none">
       <PlayerList currentPlayerIndex={currentPlayerIndex} />
+      <NewGameButton />
       <DicePanel />
       <WormholeDialog />
       <ResetViewButton />

@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, memo } from 'react';
+import { useState, useMemo, useEffect, memo, useRef } from 'react';
 import { useSpring, animated } from '@react-spring/three';
 import * as THREE from 'three';
 import { useGameStore, type Player } from '../store/useGameStore';
@@ -25,6 +25,9 @@ export const Rocket = memo(({ player, onMovementComplete }: RocketProps) => {
 
   const [phase, setPhase] = useState<Phase>('idle');
   const [preMovePos, setPreMovePos] = useState(rocketTarget);
+  
+  // Ref to track previous phase for transition logic
+  const prevPhase = useRef<Phase>('idle');
 
   // Subscribe to store for transition detection (setState in subscription callback is lint-safe)
   useEffect(() => {
@@ -37,6 +40,13 @@ export const Rocket = memo(({ player, onMovementComplete }: RocketProps) => {
       if (curr.isMoving && !prev.isMoving) {
         setPhase(p => (p === 'idle' ? 'lifting' : p));
       }
+      
+      // isMoving true→false → end of move
+      // Sync preMovePos to new position so next lift starts from here
+      if (!curr.isMoving && prev.isMoving) {
+         const pos = getTilePosition(curr.position);
+         setPreMovePos([pos[0], 0.1, pos[2]]);
+      }
 
       // Position changed while grounded (teleport / reset) → sync preMovePos
       if (curr.position !== prev.position && !curr.isMoving) {
@@ -46,6 +56,16 @@ export const Rocket = memo(({ player, onMovementComplete }: RocketProps) => {
     });
     return unsub;
   }, [player.id]);
+
+  // Handle phase completion side effects
+  useEffect(() => {
+      // Transition: landing -> idle
+      if (prevPhase.current === 'landing' && phase === 'idle') {
+          onMovementComplete();
+      }
+      
+      prevPhase.current = phase;
+  }, [phase, onMovementComplete]);
 
   // --- Derive spring targets from phase ---
   // During lifting: hold at pre-move position; otherwise follow the store position
@@ -65,8 +85,7 @@ export const Rocket = memo(({ player, onMovementComplete }: RocketProps) => {
           return 'moving';
         }
         if (current === 'landing') {
-          setPreMovePos(rocketTarget);
-          onMovementComplete();
+          // Side effects handled in useEffect now
           return 'idle';
         }
         return current;
