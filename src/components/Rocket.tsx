@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect, memo } from 'react';
 import { useSpring, animated } from '@react-spring/three';
 import * as THREE from 'three';
-import type { Player } from '../store/useGameStore';
+import { useGameStore, type Player } from '../store/useGameStore';
 import { getTilePosition, PLAYER_EMOJIS } from '../utils/boardUtils';
 
 interface RocketProps {
@@ -11,22 +11,75 @@ interface RocketProps {
 
 const ROCKET_ROTATION: [number, number, number] = [-Math.PI / 2, 0, 0];
 const SPRING_CONFIG = { mass: 1, tension: 170, friction: 26 };
+const SCALE_SPRING_CONFIG = { mass: 1, tension: 300, friction: 20 };
+const LIFTED_SCALE = 1.3;
+const LANDED_SCALE = 1.0;
+
+type Phase = 'idle' | 'lifting' | 'moving' | 'landing';
 
 export const Rocket = memo(({ player, onMovementComplete }: RocketProps) => {
-  const targetPos = getTilePosition(player.position);
-  // Lift slightly (0.1) to be above board
-  const rocketTarget: [number, number, number] = [targetPos[0], 0.1, targetPos[2]];
+  const rocketTarget = useMemo<[number, number, number]>(() => {
+    const pos = getTilePosition(player.position);
+    return [pos[0], 0.1, pos[2]];
+  }, [player.position]);
 
-  const [currentPos] = useState(rocketTarget);
+  const [phase, setPhase] = useState<Phase>('idle');
+  const [preMovePos, setPreMovePos] = useState(rocketTarget);
+
+  // Subscribe to store for transition detection (setState in subscription callback is lint-safe)
+  useEffect(() => {
+    const unsub = useGameStore.subscribe((state, prevState) => {
+      const curr = state.players.find(p => p.id === player.id);
+      const prev = prevState.players.find(p => p.id === player.id);
+      if (!curr || !prev) return;
+
+      // isMoving false→true → begin lift
+      if (curr.isMoving && !prev.isMoving) {
+        setPhase(p => (p === 'idle' ? 'lifting' : p));
+      }
+
+      // Position changed while grounded (teleport / reset) → sync preMovePos
+      if (curr.position !== prev.position && !curr.isMoving) {
+        const pos = getTilePosition(curr.position);
+        setPreMovePos([pos[0], 0.1, pos[2]]);
+      }
+    });
+    return unsub;
+  }, [player.id]);
+
+  // --- Derive spring targets from phase ---
+  // During lifting: hold at pre-move position; otherwise follow the store position
+  const positionTarget = phase === 'lifting' ? preMovePos : rocketTarget;
+  // Enlarged while airborne (lifting + moving), normal while grounded (landing + idle)
+  const scaleTarget = phase === 'lifting' || phase === 'moving' ? LIFTED_SCALE : LANDED_SCALE;
+
+  const { s } = useSpring({
+    s: scaleTarget,
+    config: SCALE_SPRING_CONFIG,
+    onRest: () => {
+      setPhase((current) => {
+        if (current === 'lifting') {
+          // Same-tile bounce-back: skip move, go straight to landing
+          if (preMovePos[0] === rocketTarget[0] && preMovePos[2] === rocketTarget[2]) {
+            return 'landing';
+          }
+          return 'moving';
+        }
+        if (current === 'landing') {
+          setPreMovePos(rocketTarget);
+          onMovementComplete();
+          return 'idle';
+        }
+        return current;
+      });
+    }
+  });
 
   const { position } = useSpring({
-    position: rocketTarget,
-    from: { position: currentPos },
+    position: positionTarget,
     config: SPRING_CONFIG,
     onRest: () => {
-        if (player.isMoving) {
-            onMovementComplete();
-        }
+      setPhase((current) => (current === 'moving' ? 'landing' : current));
     }
   });
 
@@ -58,7 +111,7 @@ export const Rocket = memo(({ player, onMovementComplete }: RocketProps) => {
   }, [emojiTexture]);
 
   return (
-    <animated.group position={position}>
+    <animated.group position={position} scale={s}>
       <mesh rotation={ROCKET_ROTATION}>
         <planeGeometry args={[1.0, 1.0]} />
         <meshBasicMaterial
