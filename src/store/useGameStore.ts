@@ -186,7 +186,9 @@ export const useGameStore = create<GameState>()(
             winner: null, 
             diceValue: null, 
             pendingWormhole: null,
-            currentPlayerIndex: 0
+            currentPlayerIndex: 0,
+            isRolling: false,
+            shouldResetCamera: true
           });
       },
 
