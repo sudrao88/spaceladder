@@ -4,6 +4,7 @@ import { OrthographicCamera, MapControls } from '@react-three/drei';
 import { Board } from './components/Board';
 import { Rocket } from './components/Rocket';
 import { HUD } from './components/HUD';
+import { Starfield } from './components/Starfield';
 import { useGameStore } from './store/useGameStore';
 import { GameController } from './hooks/useGameController';
 import type { MapControls as MapControlsType } from 'three-stdlib';
@@ -150,6 +151,8 @@ function App() {
 
         <ambientLight intensity={AMBIENT_INTENSITY} />
         <directionalLight position={DIR_LIGHT_POS} intensity={DIR_LIGHT_INTENSITY} />
+
+        <Starfield />
 
         <group>
           <GameScene />
