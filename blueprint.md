@@ -22,9 +22,15 @@ Wormhole Warp is a modern, 3D/2D web-based board game built with React, Three.js
     *   Rendered as 3D Planes using `CanvasTexture` for crisp visibility and correct sorting in the 3D scene.
     *   Animated movement using `react-spring`.
 *   **HUD (Heads-Up Display):**
-    *   **Player List:** Top-Left corner, showing active player and positions.
-    *   **Controls:** Right sidebar (compact width), containing the Dice and Roll button.
-    *   **Dice:** A fully 3D animated dice embedded in the HUD using a separate `Canvas`.
+    *   **Player List:** Top-Left corner, showing active player and positions. The active player is highlighted with a white outline around the entire card.
+    *   **Controls:** The Dice is positioned in the **bottom-right corner** with increased padding (`bottom-12 right-12`).
+    *   **Dice (Moon):** 
+        *   Replaced the standard cube dice with a bright, 3D Moon sphere.
+        *   Procedurally generated texture with craters, noise, and bump mapping for a realistic rock surface.
+        *   The text ("ROLL" or the rolled number) is rendered as if **carved** deeply into the moon's surface, using dynamic texture generation.
+        *   Uses the "Iceland" font for a sci-fi aesthetic.
+        *   Moon rotates clockwise when idle and spins wildly when rolling.
+        *   Self-illuminated (emissive) to pop against the dark background.
     *   **Reset View Button:** Bottom-Left corner (only visible when zoomed/panned), now part of the HUD layer to ensure constant visibility.
     *   **New Game Button:** Top-Right corner. Allows resetting the game via a confirmation dialog.
 *   **Wormhole Dialog:**
@@ -55,6 +61,7 @@ Wormhole Warp is a modern, 3D/2D web-based board game built with React, Three.js
     *   Moved HUD controls to a smaller right sidebar (`w-40`).
     *   Replaced the simple "Roll" text with a 3D animated Dice component inside the HUD.
     *   Added player emojis to the HUD player list.
+    *   Removed colored side badges from the player list items and improved the active player highlight to be a full white border.
 
 3.  **Player Token Upgrade:**
     *   Converted tokens from simple shapes to Emoji-based textures.
@@ -85,3 +92,11 @@ Wormhole Warp is a modern, 3D/2D web-based board game built with React, Three.js
     *   Added a "New Game" button (reset icon) to the top-right corner of the HUD.
     *   Implemented a confirmation dialog to prevent accidental resets.
     *   Updated `useGameStore` to correctly reset all game state (players, winner, dice, wormholes, camera).
+
+9.  **Dice Overhaul (Moon Dice):**
+    *   Replaced cube dice with a 3D Moon sphere.
+    *   Implemented procedural texture generation (Color + Bump maps) for craters and noise.
+    *   Integrated text ("ROLL" and numbers) directly into the texture with "carved" visual effects (inner shadows/highlights).
+    *   Moved Dice to bottom-right with increased padding.
+    *   Adopted "Iceland" font for sci-fi look.
+    *   Made the moon brighter and self-illuminated.

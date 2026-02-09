@@ -78,10 +78,9 @@ const PlayerList = memo(({ currentPlayerIndex }: PlayerListProps) => {
       {players.map((p, idx) => (
         <div
           key={p.id}
-          className={`flex items-center gap-2 px-3 py-1.5 rounded-lg bg-black/50 backdrop-blur-md border border-l-4 transition-all
+          className={`flex items-center gap-2 px-3 py-1.5 rounded-lg bg-black/50 backdrop-blur-md border transition-all
               ${idx === currentPlayerIndex ? 'border-white scale-105 shadow-lg' : 'border-transparent opacity-70'}
           `}
-          style={{ borderLeftColor: p.color }}
         >
           <span className="text-xl" role="img" aria-label="player-token">
             {PLAYER_EMOJIS[p.id % PLAYER_EMOJIS.length]}
@@ -100,37 +99,30 @@ const DicePanel = memo(() => {
   const diceValue = useGameStore(selectDiceValue);
   const isRolling = useGameStore(selectIsRolling);
   const rollDice = useGameStore(selectRollDice);
-  const currentPlayerIndex = useGameStore(selectCurrentPlayerIndex);
-  const players = useGameStore(selectPlayers);
-  const currentPlayer = players[currentPlayerIndex];
-
+  
   return (
-    <div className="absolute right-0 top-0 bottom-0 w-40 flex flex-col items-center justify-center pointer-events-none">
-      <div className="flex flex-col items-center pointer-events-auto bg-black/60 p-3 rounded-l-xl backdrop-blur-md border-l border-y border-white/10 hover:border-white/30 transition-all shadow-2xl">
-        <div className="mb-2 text-[10px] font-bold uppercase tracking-widest text-gray-300">
-          {isRolling ? 'Rolling...' : `Player ${currentPlayer?.id + 1}`}
-        </div>
-        <div className="h-20 w-20 bg-transparent mb-4 relative">
+    <div className="absolute bottom-12 right-12 flex flex-col items-center pointer-events-none">
+       {/* 
+          Dice Panel:
+          - Bottom right corner
+          - Clickable moon to roll
+          - Label "ROLL" is now on the moon itself (in Dice.tsx)
+          - Increased padding from edges by changing from bottom-6 right-6 to bottom-12 right-12
+       */}
+      <div className="pointer-events-auto flex flex-col items-center">
+        <div 
+            className="h-24 w-24 bg-transparent relative cursor-pointer hover:scale-110 transition-transform duration-300"
+            onClick={!isRolling ? rollDice : undefined}
+            title="Tap to Roll"
+        >
           <Canvas camera={{ position: [0, 0, 6], fov: 45 }}>
-            <ambientLight intensity={0.7} />
+            <ambientLight intensity={0.5} />
             <pointLight position={[5, 5, 5]} intensity={1} />
             <pointLight position={[-5, -5, -5]} intensity={0.5} />
+            {/* Removed onClick prop from Dice, handled by parent div */}
             <Dice value={diceValue} isRolling={isRolling} />
           </Canvas>
         </div>
-        <button
-          onClick={rollDice}
-          disabled={isRolling}
-          className={`
-            w-full py-2 rounded border-2 flex items-center justify-center text-white font-bold text-sm transition-all
-            ${isRolling
-              ? 'border-gray-600 bg-gray-800 cursor-not-allowed'
-              : 'border-cyan-500 bg-cyan-900/80 hover:bg-cyan-700 hover:scale-105 shadow-lg'
-            }
-          `}
-        >
-          ROLL
-        </button>
       </div>
     </div>
   );
