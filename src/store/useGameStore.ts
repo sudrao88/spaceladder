@@ -107,10 +107,16 @@ export const useGameStore = create<GameState>()(
         // Calculate target position
         let targetPos = player.position + steps;
         
-        // If roll exceeds steps to 100, bounce back logic
+        // Block if roll exceeds 100
         if (targetPos > 100) {
-            const excess = targetPos - 100;
-            targetPos = 100 - excess;
+             // Turn ends immediately if overshot
+             // We set isMoving=true momentarily to trigger the cycle, but position stays same
+             // The Rocket component needs to handle a 'move' to the SAME position gracefully
+             // (lifting up and landing back down)
+             set({
+                 players: players.map(p => p.id === playerId ? { ...p, isMoving: true } : p)
+             });
+             return;
         }
 
         set({

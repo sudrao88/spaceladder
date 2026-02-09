@@ -3,13 +3,11 @@ import { useGameStore } from '../store/useGameStore';
 import type { Player } from '../store/useGameStore';
 
 // Granular selectors — subscribe only to what the controller needs
-const selectPlayers = (s: ReturnType<typeof useGameStore.getState>) => s.players;
 const selectSetMoving = (s: ReturnType<typeof useGameStore.getState>) => s.setMoving;
 const selectNextTurn = (s: ReturnType<typeof useGameStore.getState>) => s.nextTurn;
 const selectSetPendingWormhole = (s: ReturnType<typeof useGameStore.getState>) => s.setPendingWormhole;
 
 export const GameController = () => {
-  const players = useGameStore(selectPlayers);
   const setMoving = useGameStore(selectSetMoving);
   const nextTurn = useGameStore(selectNextTurn);
   const setPendingWormhole = useGameStore(selectSetPendingWormhole);
@@ -46,7 +44,13 @@ export const GameController = () => {
   }, [nextTurn, setPendingWormhole]);
 
   const handleMovementComplete = useCallback((playerId: number) => {
-    const player = players.find(p => p.id === playerId);
+    // CRITICAL FIX: Use getState() to access the most up-to-date state.
+    // This prevents closure staleness issues where multiple rapid calls 
+    // (e.g. from animation bounces) might see 'isMoving' as true multiple times,
+    // causing nextTurn() to be called more than once and skipping players.
+    const currentPlayers = useGameStore.getState().players;
+    const player = currentPlayers.find(p => p.id === playerId);
+    
     if (!player || !player.isMoving) return;
 
     setMoving(playerId, false);
@@ -54,7 +58,7 @@ export const GameController = () => {
     setTimeout(() => {
         checkWormhole(player);
     }, 500);
-  }, [players, setMoving, checkWormhole]);
+  }, [setMoving, checkWormhole]);
 
   return { handleMovementComplete };
 };

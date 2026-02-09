@@ -59,10 +59,9 @@ export const Rocket = memo(({ player, onMovementComplete }: RocketProps) => {
     onRest: () => {
       setPhase((current) => {
         if (current === 'lifting') {
-          // Same-tile bounce-back: skip move, go straight to landing
-          if (preMovePos[0] === rocketTarget[0] && preMovePos[2] === rocketTarget[2]) {
-            return 'landing';
-          }
+          // If we are just lifting but the target is the same as start (blocked move), 
+          // we still want to transition to 'moving' then 'landing' so the turn cycle completes.
+          // The visual effect will be a hop in place.
           return 'moving';
         }
         if (current === 'landing') {
