@@ -11,6 +11,7 @@ Wormhole Warp is a modern, 3D/2D web-based board game built with React, Three.js
 *   **Movement:** Players roll a dice and move automatically.
 *   **Wormholes:** Random chance (25%) to trigger a "wormhole" upon landing, which can teleport the player forward (Boost) or backward (Glitch).
 *   **Win Condition:** First player to reach Tile 100 wins.
+*   **End Game:** If a player rolls a number higher than the remaining steps to reach Tile 100, they stay in their current position and the turn passes.
 
 ### Visuals & UI
 *   **View:** 2D Orthographic Top-Down view for a clear, board-game feel.
@@ -57,3 +58,8 @@ Wormhole Warp is a modern, 3D/2D web-based board game built with React, Three.js
     *   Fixed `useGameController` import error (Type-only import).
     *   Fixed HUD style conflict (shorthand vs longhand border properties).
     *   Ensured "Reset View" button position is stable.
+
+5.  **Gameplay Logic Refinement:**
+    *   **End-Game Mechanic:**
+        *   Removed "bounce back" behavior when a dice roll exceeds the remaining steps to 100.
+        *   Implemented "block" behavior: if the roll is too high, the player stays on the current tile and the turn passes to the next player.

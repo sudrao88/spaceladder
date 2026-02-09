@@ -92,38 +92,24 @@ export const useGameStore = create<GameState>()(
         if (playerIndex === -1) return;
 
         const player = players[playerIndex];
+
+        // Calculate target position
+        let targetPos = player.position + steps;
+        
+        // If roll exceeds steps to 100, stay in current position
+        if (targetPos > 100) {
+            // Stay at current position
+            // We don't set isMoving=true so UI doesn't try to animate
+            // Just wait a bit and proceed to next turn
+            setTimeout(() => {
+                get().nextTurn();
+            }, 1000);
+            return;
+        }
+
         set({
           players: players.map(p => p.id === playerId ? { ...p, isMoving: true } : p)
         });
-
-        // Calculate target position with bounce back logic
-        let targetPos = player.position + steps;
-        if (targetPos > 100) {
-          const excess = targetPos - 100;
-          targetPos = 100 - excess;
-        }
-
-        // We will animate this in the UI, but logically update it here or sequentially
-        // For simplicity in store, we might just update "target" and let UI interpolate
-        // But the requirement says "Wait for Animation -> Trigger Wormhole".
-        // So we need a way to callback or signal animation end.
-        
-        // Actually, let's just update the position in the store, 
-        // and the 3D component will react to the position change and animate.
-        // HOWEVER, we need to handle the "Wait" part.
-        // So maybe we don't update position instantly to the final value if we want step-by-step?
-        // Let's rely on the 3D component to report "MovementDone".
-        // But for the logic state, we can compute the final result.
-        
-        // Wait, for the "hop" animation, it's better if the store holds the current logical position.
-        // The 3D view can interpolate.
-        // But the Wormhole check needs to happen AFTER the player arrives.
-        // So we need a two-step process.
-        
-        // Let's implement a simplified flow:
-        // 1. Update position.
-        // 2. UI detects change -> Animates.
-        // 3. UI calls "checkWormhole" after animation completes.
         
         set((state) => ({
            players: state.players.map(p => p.id === playerId ? { ...p, position: targetPos } : p)
