@@ -6,7 +6,6 @@ import * as THREE from 'three';
 interface DiceProps {
     value: number | null;
     isRolling: boolean;
-    onClick: () => void;
 }
 
 // Resolution for the texture - High quality for crisp text
@@ -87,7 +86,7 @@ const createBaseMoonAssets = () => {
     return { colorCanvas, heightCanvas };
 };
 
-export const Dice = memo(({ value, isRolling, onClick }: DiceProps) => {
+export const Dice = memo(({ value, isRolling }: DiceProps) => {
     const groupRef = useRef<THREE.Group>(null);
     
     // Memoize expensive generation
@@ -196,14 +195,18 @@ export const Dice = memo(({ value, isRolling, onClick }: DiceProps) => {
                 // Use Damp for smooth spring-like stop
                 const smoothTime = 5;
                 
-                // Helper for shortest path rotation
-                groupRef.current.rotation.x = THREE.MathUtils.lerp(groupRef.current.rotation.x, targetX, delta * smoothTime);
+                // Use THREE.MathUtils.damp for frame-rate independent smooth damping
+                groupRef.current.rotation.x = THREE.MathUtils.damp(groupRef.current.rotation.x, targetX, smoothTime, delta);
                 
                 // Simple Y damp
-                groupRef.current.rotation.y = THREE.MathUtils.lerp(groupRef.current.rotation.y, targetY, delta * smoothTime);
+                groupRef.current.rotation.y = THREE.MathUtils.damp(groupRef.current.rotation.y, targetY, smoothTime, delta);
                 
-                groupRef.current.rotation.z = THREE.MathUtils.lerp(groupRef.current.rotation.z, targetZ, delta * smoothTime);
+                groupRef.current.rotation.z = THREE.MathUtils.damp(groupRef.current.rotation.z, targetZ, smoothTime, delta);
              } else {
+                 // Gently damp X and Z to 0 to remove any tilt from rolling
+                 groupRef.current.rotation.x = THREE.MathUtils.damp(groupRef.current.rotation.x, 0, 5, delta);
+                 groupRef.current.rotation.z = THREE.MathUtils.damp(groupRef.current.rotation.z, 0, 5, delta);
+                 
                  // Idle spin clockwise around Y
                  groupRef.current.rotation.y -= delta * 0.5;
              }
@@ -211,7 +214,7 @@ export const Dice = memo(({ value, isRolling, onClick }: DiceProps) => {
     });
 
     return (
-        <group ref={groupRef} onClick={onClick}>
+        <group ref={groupRef}>
             {/* High segment count for smooth bump mapping */}
             <Sphere args={[2.2, 128, 128]}>
                 {textures && (

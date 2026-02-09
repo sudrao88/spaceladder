@@ -119,8 +119,8 @@ const DicePanel = memo(() => {
             <ambientLight intensity={0.5} />
             <pointLight position={[5, 5, 5]} intensity={1} />
             <pointLight position={[-5, -5, -5]} intensity={0.5} />
-            {/* Pass rollDice as onClick handler to the Dice mesh itself */}
-            <Dice value={diceValue} isRolling={isRolling} onClick={!isRolling ? rollDice : () => {}} />
+            {/* Removed onClick prop from Dice, handled by parent div */}
+            <Dice value={diceValue} isRolling={isRolling} />
           </Canvas>
         </div>
       </div>
