@@ -1,6 +1,7 @@
 import { memo } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { Dice } from './Dice';
+import { WormholeDialog } from './WormholeDialog';
 import { useGameStore } from '../store/useGameStore';
 import { PLAYER_EMOJIS } from '../utils/boardUtils';
 
@@ -151,6 +152,7 @@ export const HUD = memo(() => {
     <div className="absolute inset-0 z-10 pointer-events-none">
       <PlayerList currentPlayerIndex={currentPlayerIndex} />
       <DicePanel />
+      <WormholeDialog />
     </div>
   );
 });

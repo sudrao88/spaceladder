@@ -6,13 +6,13 @@ import type { Player } from '../store/useGameStore';
 const selectPlayers = (s: ReturnType<typeof useGameStore.getState>) => s.players;
 const selectSetMoving = (s: ReturnType<typeof useGameStore.getState>) => s.setMoving;
 const selectNextTurn = (s: ReturnType<typeof useGameStore.getState>) => s.nextTurn;
-const selectTeleportPlayer = (s: ReturnType<typeof useGameStore.getState>) => s.teleportPlayer;
+const selectSetPendingWormhole = (s: ReturnType<typeof useGameStore.getState>) => s.setPendingWormhole;
 
 export const GameController = () => {
   const players = useGameStore(selectPlayers);
   const setMoving = useGameStore(selectSetMoving);
   const nextTurn = useGameStore(selectNextTurn);
-  const teleportPlayer = useGameStore(selectTeleportPlayer);
+  const setPendingWormhole = useGameStore(selectSetPendingWormhole);
 
   const checkWormhole = useCallback((player: Player) => {
       const currentTile = player.position;
@@ -36,18 +36,14 @@ export const GameController = () => {
           }
 
           const isBoost = destination > currentTile;
-          console.log(isBoost ? "WORMHOLE BOOST!" : "WORMHOLE GLITCH!");
 
-          teleportPlayer(player.id, destination);
-
-          setTimeout(() => {
-              nextTurn();
-          }, 1000);
+          // Show dialog instead of teleporting immediately
+          setPendingWormhole({ playerId: player.id, destination, isBoost });
 
       } else {
           nextTurn();
       }
-  }, [nextTurn, teleportPlayer]);
+  }, [nextTurn, setPendingWormhole]);
 
   const handleMovementComplete = useCallback((playerId: number) => {
     const player = players.find(p => p.id === playerId);
