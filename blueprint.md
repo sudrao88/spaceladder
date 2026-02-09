@@ -26,6 +26,7 @@ Wormhole Warp is a modern, 3D/2D web-based board game built with React, Three.js
     *   **Controls:** Right sidebar (compact width), containing the Dice and Roll button.
     *   **Dice:** A fully 3D animated dice embedded in the HUD using a separate `Canvas`.
     *   **Reset View Button:** Bottom-Left corner (only visible when zoomed/panned), now part of the HUD layer to ensure constant visibility.
+    *   **New Game Button:** Top-Right corner. Allows resetting the game via a confirmation dialog.
 *   **Wormhole Dialog:**
     *   A modal dialog that appears when a player lands on a wormhole.
     *   Shows a "Boost" or "Glitch" message based on the outcome.
@@ -75,7 +76,12 @@ Wormhole Warp is a modern, 3D/2D web-based board game built with React, Three.js
     *   Fixed HUD style conflict (shorthand vs longhand border properties).
     *   Ensured "Reset View" button position is stable.
 
-5.  **Gameplay Logic Refinement:**
+7.  **Gameplay Logic Refinement:**
     *   **End-Game Mechanic:**
         *   Removed "bounce back" behavior when a dice roll exceeds the remaining steps to 100.
         *   Implemented "block" behavior: if the roll is too high, the player stays on the current tile and the turn passes to the next player.
+
+8.  **New Game Feature:**
+    *   Added a "New Game" button (reset icon) to the top-right corner of the HUD.
+    *   Implemented a confirmation dialog to prevent accidental resets.
+    *   Updated `useGameStore` to correctly reset all game state (players, winner, dice, wormholes, camera).

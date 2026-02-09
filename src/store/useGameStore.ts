@@ -74,7 +74,10 @@ export const useGameStore = create<GameState>()(
           currentPlayerIndex: 0,
           gameStatus: 'playing',
           winner: null,
-          diceValue: null
+          diceValue: null,
+          isRolling: false,
+          pendingWormhole: null,
+          shouldResetCamera: true
         });
       },
 
@@ -87,6 +90,7 @@ export const useGameStore = create<GameState>()(
         // Simulate rolling delay
         setTimeout(() => {
           const roll = Math.floor(Math.random() * 6) + 1;
+          
           set({ diceValue: roll, isRolling: false });
           
           const { players, currentPlayerIndex } = get();
@@ -105,7 +109,7 @@ export const useGameStore = create<GameState>()(
         const player = players[playerIndex];
 
         // Calculate target position
-        let targetPos = player.position + steps;
+        const targetPos = player.position + steps;
         
         // Block if roll exceeds 100
         if (targetPos > 100) {
@@ -113,15 +117,15 @@ export const useGameStore = create<GameState>()(
              // We set isMoving=true momentarily to trigger the cycle, but position stays same
              // The Rocket component needs to handle a 'move' to the SAME position gracefully
              // (lifting up and landing back down)
-             set({
-                 players: players.map(p => p.id === playerId ? { ...p, isMoving: true } : p)
-             });
+             //  Actually, if we don't change position, Rocket won't animate.
+             //  So we just skip turn for now? Or implement a "bounce" animation later.
+             //  Let's just pass turn.
+             get().nextTurn();
              return;
         }
 
-        set({
-          players: players.map(p => p.id === playerId ? { ...p, isMoving: true, position: targetPos } : p)
-        });
+        const newPlayers = players.map(p => p.id === playerId ? { ...p, isMoving: true, position: targetPos } : p);
+        set({ players: newPlayers });
       },
 
       teleportPlayer: (playerId, targetTile) => {
@@ -140,18 +144,22 @@ export const useGameStore = create<GameState>()(
         const { playerId, destination } = pendingWormhole;
         
         // Teleport the player
-        get().teleportPlayer(playerId, destination);
-        
-        // Clear pending wormhole
-        set({ pendingWormhole: null });
+        set((state) => ({
+            players: state.players.map(p => p.id === playerId ? { ...p, position: destination } : p),
+            pendingWormhole: null
+        }));
         
         // Wait a bit before next turn
         setTimeout(() => {
-          get().nextTurn();
+            get().nextTurn();
         }, POST_TELEPORT_DELAY_MS);
       },
 
       setMoving: (playerId, isMoving) => {
+         const { players } = get();
+         const player = players.find(p => p.id === playerId);
+         if (player && player.isMoving === isMoving) return;
+
          set((state) => ({
           players: state.players.map(p => p.id === playerId ? { ...p, isMoving } : p)
         }));
@@ -172,7 +180,16 @@ export const useGameStore = create<GameState>()(
       },
       
       resetGame: () => {
-          set({ gameStatus: 'setup', players: [], winner: null, diceValue: null, pendingWormhole: null });
+          set({ 
+            gameStatus: 'setup', 
+            players: [], 
+            winner: null, 
+            diceValue: null, 
+            pendingWormhole: null,
+            currentPlayerIndex: 0,
+            isRolling: false,
+            shouldResetCamera: true
+          });
       },
 
       setIsDefaultView: (isDefault) => set({ isDefaultView: isDefault }),
