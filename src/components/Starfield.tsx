@@ -18,7 +18,7 @@ function createStarGeometry(): THREE.BufferGeometry {
     positions[i3 + 1] = STAR_Y - Math.random() * 0.3;
     positions[i3 + 2] = (Math.random() - 0.5) * SPREAD * 2;
 
-    const brightness = 0.5 + Math.random() * 0.5;
+    const brightness = 0.7 + Math.random() * 0.3;
     const tint = Math.random();
     if (tint < 0.15) {
       // cyan tint
@@ -82,10 +82,10 @@ export const Starfield = memo(() => {
     <points ref={pointsRef} geometry={geometry}>
       <pointsMaterial
         vertexColors
-        size={0.08}
+        size={0.18}
         sizeAttenuation={false}
         transparent
-        opacity={0.8}
+        opacity={1.0}
         depthWrite={false}
       />
     </points>
