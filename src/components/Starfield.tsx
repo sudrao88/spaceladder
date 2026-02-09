@@ -4,7 +4,7 @@ import * as THREE from 'three';
 
 const STAR_COUNT = 300;
 const SPREAD = 20; // stars span a 40x40 area centered on origin
-const DRIFT_SPEED = 0.15; // units per second
+const DRIFT_SPEED = 0.45; // units per second
 const STAR_Y = -0.5; // below the board plane
 
 // Build star geometry once at module level to avoid Math.random() inside render
@@ -82,7 +82,7 @@ export const Starfield = memo(() => {
     <points ref={pointsRef} geometry={geometry}>
       <pointsMaterial
         vertexColors
-        size={0.18}
+        size={1.18}
         sizeAttenuation={false}
         transparent
         opacity={1.0}
