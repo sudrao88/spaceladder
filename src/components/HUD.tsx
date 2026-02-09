@@ -74,19 +74,19 @@ const PlayerList = memo(({ currentPlayerIndex }: PlayerListProps) => {
   const players = useGameStore(selectPlayers);
 
   return (
-    <div className="absolute top-4 left-4 flex flex-col gap-2 pointer-events-auto">
+    <div className="absolute top-4 left-4 flex flex-col gap-3 pointer-events-auto">
       {players.map((p, idx) => (
         <div
           key={p.id}
-          className={`flex items-center gap-2 px-3 py-1.5 rounded-lg bg-black/50 backdrop-blur-md border transition-all
-              ${idx === currentPlayerIndex ? 'border-white scale-105 shadow-lg' : 'border-transparent opacity-70'}
+          className={`flex items-center gap-3 px-4 py-2 rounded-xl bg-black/50 backdrop-blur-md border transition-all
+              ${idx === currentPlayerIndex ? 'border-white scale-110 shadow-lg' : 'border-transparent opacity-70'}
           `}
         >
-          <span className="text-xl" role="img" aria-label="player-token">
+          <span className="text-2xl" role="img" aria-label="player-token">
             {PLAYER_EMOJIS[p.id % PLAYER_EMOJIS.length]}
           </span>
-          <span className="text-white font-mono font-bold text-sm">P{p.id + 1}</span>
-          <span className="text-cyan-300 ml-1 text-xs">Tile: {p.position}</span>
+          <span className="text-white font-mono font-bold text-base">P{p.id + 1}</span>
+          <span className="text-cyan-300 ml-2 text-sm">Tile: {p.position}</span>
         </div>
       ))}
     </div>

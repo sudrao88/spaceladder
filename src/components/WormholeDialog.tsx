@@ -156,10 +156,6 @@ export const WormholeDialog = memo(() => {
                     {message}
                   </p>
 
-                  <p className="text-xs text-gray-500 mb-5">
-                    Tile {player?.position ?? '?'} &rarr; Tile {pendingWormhole?.destination}
-                  </p>
-
                   <button
                     onClick={handleTeleport}
                     className="group relative px-8 py-3 rounded-xl font-bold text-white text-base transition-all active:scale-95"

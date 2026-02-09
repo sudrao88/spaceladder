@@ -85,23 +85,28 @@ export const useGameStore = create<GameState>()(
         const { isRolling, gameStatus } = get();
         if (isRolling || gameStatus !== 'playing') return;
 
-        set({ isRolling: true, diceValue: null });
-        
-        // Simulate rolling delay
-        setTimeout(() => {
-          const roll = Math.floor(Math.random() * 6) + 1;
+        (async () => {
+          set({ isRolling: true, diceValue: null });
           
+          const delay = (ms: number) => new Promise(res => setTimeout(res, ms));
+          
+          // Simulate rolling delay
+          await delay(1000);
+          
+          const roll = Math.floor(Math.random() * 6) + 1;
           set({ diceValue: roll, isRolling: false });
           
           // Wait a bit AFTER the dice stops and shows the value before moving the player
-          setTimeout(() => {
-            const { players, currentPlayerIndex } = get();
-            const currentPlayer = players[currentPlayerIndex];
-            
+          await delay(800);
+          
+          const { players, currentPlayerIndex } = get();
+          const currentPlayer = players[currentPlayerIndex];
+          
+          if (currentPlayer) {
             // Trigger movement
             get().movePlayer(currentPlayer.id, roll);
-          }, 800); // Small pause for the player to see the number
-        }, 1000);
+          }
+        })();
       },
 
       movePlayer: (playerId, steps) => {
@@ -166,8 +171,10 @@ export const useGameStore = create<GameState>()(
         const { players, currentPlayerIndex } = get();
         const currentPlayer = players[currentPlayerIndex];
 
+        if (!currentPlayer) return;
+
         // Check win condition
-        if (currentPlayer && currentPlayer.position === 100) {
+        if (currentPlayer.position === 100) {
             set({ gameStatus: 'finished', winner: currentPlayer });
             return;
         }
