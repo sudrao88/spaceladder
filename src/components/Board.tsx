@@ -1,39 +1,58 @@
-import { useMemo } from 'react';
+import { memo, useMemo } from 'react';
 import { Text, Edges } from '@react-three/drei';
 import { getCachedBoardTiles, TILE_SIZE } from '../utils/boardUtils';
+import * as THREE from 'three';
 
-export const Board = () => {
-  const tiles = useMemo(() => {
-    const rawTiles = getCachedBoardTiles();
-    return rawTiles.map(tile => ({
-        ...tile,
-        position: [tile.x, 0, tile.z] as [number, number, number],
-    }));
-  }, []);
+// Shared geometry & material instances — created once, reused across all 100 tiles
+const sharedTileGeometry = new THREE.PlaneGeometry(TILE_SIZE, TILE_SIZE);
+const sharedTileMaterial = new THREE.MeshBasicMaterial({ color: '#1e293b' });
+const TILE_ROTATION: [number, number, number] = [-Math.PI / 2, 0, 0];
+const TEXT_Y_OFFSET = 0.01;
 
-  return (
-    <group>
-      {tiles.map((tile) => (
-        <group key={tile.id} position={tile.position}>
-          {/* Tile Base - Flat 2D */}
-          <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
-            <planeGeometry args={[TILE_SIZE, TILE_SIZE]} />
-            <meshBasicMaterial color="#1e293b" /> 
-            <Edges color="#475569" linewidth={1} />
-          </mesh>
-          
-          <Text
-            position={[0, 0.01, 0]}
-            rotation={[-Math.PI / 2, 0, 0]}
-            fontSize={0.4}
-            color="#94a3b8"
-            anchorX="center"
-            anchorY="middle"
-          >
-            {tile.id}
-          </Text>
+interface TileProps {
+    id: number;
+    position: [number, number, number];
+}
+
+// Individual tile as a memoized component — prevents re-render when parent updates
+const Tile = memo(({ id, position }: TileProps) => {
+    return (
+        <group position={position}>
+            <mesh rotation={TILE_ROTATION} receiveShadow geometry={sharedTileGeometry} material={sharedTileMaterial}>
+                <Edges color="#475569" linewidth={1} />
+            </mesh>
+            <Text
+                position={[0, TEXT_Y_OFFSET, 0]}
+                rotation={TILE_ROTATION}
+                fontSize={0.4}
+                color="#94a3b8"
+                anchorX="center"
+                anchorY="middle"
+            >
+                {id}
+            </Text>
         </group>
-      ))}
-    </group>
-  );
-};
+    );
+});
+
+Tile.displayName = 'Tile';
+
+export const Board = memo(() => {
+    const tiles = useMemo(() => {
+        const rawTiles = getCachedBoardTiles();
+        return rawTiles.map(tile => ({
+            id: tile.id,
+            position: [tile.x, 0, tile.z] as [number, number, number],
+        }));
+    }, []);
+
+    return (
+        <group>
+            {tiles.map((tile) => (
+                <Tile key={tile.id} id={tile.id} position={tile.position} />
+            ))}
+        </group>
+    );
+});
+
+Board.displayName = 'Board';

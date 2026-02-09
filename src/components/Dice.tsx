@@ -1,4 +1,4 @@
-import { useRef, useEffect } from 'react';
+import { useRef, useEffect, memo } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { RoundedBox, Text } from '@react-three/drei';
 import { useSpring, animated } from '@react-spring/three';
@@ -8,77 +8,63 @@ interface DiceProps {
     isRolling: boolean;
 }
 
-export const Dice = ({ value, isRolling }: DiceProps) => {
-    // Rotation state
+const SPRING_CONFIG = { mass: 2, tension: 150, friction: 40 };
+
+// Pre-computed face positions/rotations (static, no allocations per render)
+const FACE_1 = { position: [0, 0, 1.26] as const, rotation: undefined };
+const FACE_6 = { position: [0, 0, -1.26] as const, rotation: [0, Math.PI, 0] as const };
+const FACE_2 = { position: [0, 1.26, 0] as const, rotation: [-Math.PI / 2, 0, 0] as const };
+const FACE_5 = { position: [0, -1.26, 0] as const, rotation: [Math.PI / 2, 0, 0] as const };
+const FACE_3 = { position: [1.26, 0, 0] as const, rotation: [0, Math.PI / 2, 0] as const };
+const FACE_4 = { position: [-1.26, 0, 0] as const, rotation: [0, -Math.PI / 2, 0] as const };
+
+// Target rotation for each dice value
+const TARGET_ROTATIONS: Record<number, [number, number]> = {
+    1: [0, 0],
+    2: [Math.PI / 2, 0],
+    3: [0, -Math.PI / 2],
+    4: [0, Math.PI / 2],
+    5: [-Math.PI / 2, 0],
+    6: [0, Math.PI],
+};
+
+const normalize = (current: number, target: number): number => {
+    const cycle = Math.PI * 2;
+    const currentMod = current % cycle;
+    const diff = target - currentMod;
+    if (diff > Math.PI) return current + diff - cycle;
+    if (diff < -Math.PI) return current + diff + cycle;
+    return current + diff;
+};
+
+export const Dice = memo(({ value, isRolling }: DiceProps) => {
     const [springs, api] = useSpring(() => ({
         rotation: [0, 0, 0],
-        config: { mass: 2, tension: 150, friction: 40 }
+        config: SPRING_CONFIG
     }));
 
-    // We use a ref to track current rotation for smooth transition
     const rotationRef = useRef([0, 0, 0]);
 
     useFrame((_, delta) => {
         if (isRolling) {
-             // Continuous rotation
              rotationRef.current[0] += delta * 15;
              rotationRef.current[1] += delta * 12;
-             
-             // Directly set rotation on the spring (immediate) to bypass spring physics for the spin
-             // @ts-expect-error react-spring types for api.set are complex
              api.set({ rotation: rotationRef.current });
         }
     });
 
     useEffect(() => {
         if (!isRolling && value) {
-            // Determine target rotation based on value
-            // We want the face 'value' to be pointing +Z (towards camera)
-            
-            // Layout:
-            // Front (+Z): 1
-            // Back (-Z): 6
-            // Top (+Y): 2
-            // Bottom (-Y): 5
-            // Right (+X): 3
-            // Left (-X): 4
-            
-            let targetX = 0;
-            let targetY = 0;
-            
-            switch(value) {
-                case 1: targetX = 0; targetY = 0; break;
-                case 6: targetX = 0; targetY = Math.PI; break; // Rotate Y 180
-                case 2: targetX = Math.PI/2; targetY = 0; break; // Rotate X 90 (Top comes front)
-                case 5: targetX = -Math.PI/2; targetY = 0; break; // Rotate X -90
-                case 3: targetX = 0; targetY = -Math.PI/2; break; // Rotate Y -90
-                case 4: targetX = 0; targetY = Math.PI/2; break; // Rotate Y 90
-            }
-
-            // We need to find the multiple of 2PI closest to current rotationRef
-            // to avoid spinning back wildly.
-            
-            const normalize = (current: number, target: number) => {
-                const cycle = Math.PI * 2;
-                const currentMod = current % cycle;
-                const diff = target - currentMod;
-                // Find shortest path
-                if (diff > Math.PI) return current + diff - cycle;
-                if (diff < -Math.PI) return current + diff + cycle;
-                return current + diff;
-            };
+            const [targetX, targetY] = TARGET_ROTATIONS[value] ?? [0, 0];
 
             const finalX = normalize(rotationRef.current[0], targetX);
             const finalY = normalize(rotationRef.current[1], targetY);
-            const finalZ = normalize(rotationRef.current[2], 0); // Always 0 for Z
+            const finalZ = normalize(rotationRef.current[2], 0);
 
-            // Animate to final
             api.start({
                 rotation: [finalX, finalY, finalZ],
                 onChange: (result) => {
-                    // Keep ref in sync
-                    const r = result.value.rotation as number[];
-                    rotationRef.current = r;
+                    rotationRef.current = result.value.rotation as number[];
                 }
             });
         }
@@ -91,14 +77,16 @@ export const Dice = ({ value, isRolling }: DiceProps) => {
                <RoundedBox args={[2.5, 2.5, 2.5]} radius={0.2} smoothness={4}>
                    <meshStandardMaterial color="#1f2937" roughness={0.3} metalness={0.6} />
                </RoundedBox>
-               
-               <Text position={[0, 0, 1.26]} fontSize={1.5} color="#22d3ee" anchorX="center" anchorY="middle">1</Text>
-               <Text position={[0, 0, -1.26]} rotation={[0, Math.PI, 0]} fontSize={1.5} color="#22d3ee" anchorX="center" anchorY="middle">6</Text>
-               <Text position={[0, 1.26, 0]} rotation={[-Math.PI/2, 0, 0]} fontSize={1.5} color="#22d3ee" anchorX="center" anchorY="middle">2</Text>
-               <Text position={[0, -1.26, 0]} rotation={[Math.PI/2, 0, 0]} fontSize={1.5} color="#22d3ee" anchorX="center" anchorY="middle">5</Text>
-               <Text position={[1.26, 0, 0]} rotation={[0, Math.PI/2, 0]} fontSize={1.5} color="#22d3ee" anchorX="center" anchorY="middle">3</Text>
-               <Text position={[-1.26, 0, 0]} rotation={[0, -Math.PI/2, 0]} fontSize={1.5} color="#22d3ee" anchorX="center" anchorY="middle">4</Text>
+
+               <Text position={FACE_1.position} fontSize={1.5} color="#22d3ee" anchorX="center" anchorY="middle">1</Text>
+               <Text position={FACE_6.position} rotation={FACE_6.rotation} fontSize={1.5} color="#22d3ee" anchorX="center" anchorY="middle">6</Text>
+               <Text position={FACE_2.position} rotation={FACE_2.rotation} fontSize={1.5} color="#22d3ee" anchorX="center" anchorY="middle">2</Text>
+               <Text position={FACE_5.position} rotation={FACE_5.rotation} fontSize={1.5} color="#22d3ee" anchorX="center" anchorY="middle">5</Text>
+               <Text position={FACE_3.position} rotation={FACE_3.rotation} fontSize={1.5} color="#22d3ee" anchorX="center" anchorY="middle">3</Text>
+               <Text position={FACE_4.position} rotation={FACE_4.rotation} fontSize={1.5} color="#22d3ee" anchorX="center" anchorY="middle">4</Text>
            </animated.group>
         </group>
     );
-}
+});
+
+Dice.displayName = 'Dice';
