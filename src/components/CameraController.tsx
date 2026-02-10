@@ -143,8 +143,6 @@ export const CameraController = memo(() => {
             // Sync camera position
             camera.position.x = controlsRef.current.target.x;
             camera.position.z = controlsRef.current.target.z;
-
-            controlsRef.current.update();
         }
     } 
     
@@ -176,8 +174,6 @@ export const CameraController = memo(() => {
         // Sync camera
         camera.position.x = controlsRef.current.target.x;
         camera.position.z = controlsRef.current.target.z;
-        
-        controlsRef.current.update();
 
         // Check completion
         const zoomDone = Math.abs(camera.zoom - targetZoom) < ZOOM_EPSILON;
@@ -189,34 +185,33 @@ export const CameraController = memo(() => {
             lastIsDefaultRef.current = true;
         }
     }
+
+    // Always update controls for damping to work during manual interaction
+    controlsRef.current.update();
   });
 
 
-  // Periodic check for manual movement to update UI state
-  useEffect(() => {
-      const checkZoom = () => {
-          if (shouldFollowPlayer || isResettingRef.current) return;
+  // Optimized event-driven check for manual movement
+  const handleControlsChange = useCallback(() => {
+      // If we are automating movement, don't interfere with "default view" logic here
+      if (shouldFollowPlayer || isResettingRef.current) return;
 
-          if (!camera || !controlsRef.current) return;
-          
-          const defaultZoom = calculateDefaultZoom();
-          const currentZoom = camera.zoom;
-          const currentTarget = controlsRef.current.target;
+      if (!camera || !controlsRef.current) return;
+      
+      const defaultZoom = calculateDefaultZoom();
+      const currentZoom = camera.zoom;
+      const currentTarget = controlsRef.current.target;
 
-          const zoomChanged = Math.abs(currentZoom - defaultZoom) > ZOOM_EPSILON;
-          const posChanged = Math.abs(currentTarget.x) > MANUAL_MOVE_THRESHOLD || Math.abs(currentTarget.z) > MANUAL_MOVE_THRESHOLD;
+      const zoomChanged = Math.abs(currentZoom - defaultZoom) > ZOOM_EPSILON;
+      const posChanged = Math.abs(currentTarget.x) > MANUAL_MOVE_THRESHOLD || Math.abs(currentTarget.z) > MANUAL_MOVE_THRESHOLD;
 
-          const isDefault = !zoomChanged && !posChanged;
-          
-          if (isDefault !== lastIsDefaultRef.current) {
-             setIsDefaultView(isDefault);
-             lastIsDefaultRef.current = isDefault;
-          }
-      };
-
-      const interval = setInterval(checkZoom, 500);
-      return () => clearInterval(interval);
-  }, [camera, calculateDefaultZoom, setIsDefaultView, shouldFollowPlayer]);
+      const isDefault = !zoomChanged && !posChanged;
+      
+      if (isDefault !== lastIsDefaultRef.current) {
+         setIsDefaultView(isDefault);
+         lastIsDefaultRef.current = isDefault;
+      }
+  }, [shouldFollowPlayer, camera, calculateDefaultZoom, setIsDefaultView]);
 
 
   return (
@@ -227,9 +222,9 @@ export const CameraController = memo(() => {
           enablePan={!shouldFollowPlayer && !isResettingRef.current}
           minZoom={10}
           maxZoom={100}
-          // Damping for manual interaction
           enableDamping={true} 
           dampingFactor={0.1}
+          onChange={handleControlsChange}
        />
   );
 });

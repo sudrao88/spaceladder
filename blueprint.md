@@ -31,9 +31,11 @@ Spaceladder is an interactive, space-themed board game built with React. This do
 
 - **New Component:** `CameraController` encapsulated in `src/components/CameraController.tsx`.
 - **Logic Improvement:** Replaced complex `useFrame` logic in `App.tsx` with a dedicated controller using frame-independent damping for smoother camera transitions.
-- **Performance:** Optimized camera updates to only run when necessary and use granular state selectors.
+- **Performance:** Optimized camera updates to only run when necessary and use granular state selectors. Replaced polling `setInterval` with event-driven `onChange` for camera state detection.
 - **Structure:** Moved `activeRocketRef` to `src/utils/sceneRefs.ts` to avoid circular dependencies.
-- **Fix:** Resolved camera snapping issue by managing internal state (`lastIsDefaultRef`) correctly and removing `shouldFollowPlayer` from the initialization effect dependencies.
+- **Fixes:** 
+    - Resolved camera snapping issue by managing internal state (`lastIsDefaultRef`) correctly.
+    - Enabled correct damping for manual camera movement by ensuring `controls.update()` is called every frame.
 
 ## Deployment Plan
 
