@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <circle cx="256" cy="256" r="256" fill="#050510"/>
+  <!-- Rocket body -->
+  <path d="M256 120 C256 120 220 200 220 300 L292 300 C292 200 256 120 256 120Z" fill="#e0e5f0"/>
+  <!-- Nose cone highlight -->
+  <path d="M256 120 C256 120 238 170 234 200 L278 200 C274 170 256 120 256 120Z" fill="#f0f2ff"/>
+  <!-- Window -->
+  <circle cx="256" cy="240" r="18" fill="#06b6d4"/>
+  <!-- Fins -->
+  <path d="M220 280 L195 320 L220 310Z" fill="#06b6d4"/>
+  <path d="M292 280 L317 320 L292 310Z" fill="#06b6d4"/>
+  <!-- Flame -->
+  <path d="M230 300 L256 380 L282 300Z" fill="#f59e0b"/>
+  <path d="M238 300 L256 360 L274 300Z" fill="#ef4444"/>
+</svg>
