@@ -25,7 +25,28 @@ const BOARD_SIZE = 13;
 const CANVAS_DPR: [number, number] = [1, 2];
 
 // Camera Constants
-const CLOSE_ZOOM_LEVEL = 35; // How close to zoom when following player
+const CLOSE_ZOOM_LEVEL_MIN = 35; 
+const CLOSE_ZOOM_LEVEL_MULTIPLIER = 2.5;
+
+// Animation Constants - REDUCED SPEEDS FOR SMOOTHER FEEL
+const CAMERA_DAMPING_SPEED = 1.5; // Reduced from 3.0
+const CAMERA_FOLLOW_SPEED_MULTIPLIER = 1.2; // Adjusted relative speed
+const ZOOM_EPSILON = 0.1;
+const POSITION_SNAP_EPSILON = 0.05;
+const POSITION_COMPLETION_EPSILON = 0.1;
+const MANUAL_MOVE_THRESHOLD = 0.5;
+
+// Use a function to calculate zoom level to ensure we are always "zooming in" relative to the current view size.
+const getCloseZoomLevel = (currentDefaultZoom: number) => {
+    return Math.max(currentDefaultZoom * CLOSE_ZOOM_LEVEL_MULTIPLIER, CLOSE_ZOOM_LEVEL_MIN);
+};
+
+// GLOBAL REF to track the active rocket mesh for camera following
+// This is a bit of a hack to bridge the gap between React state and the Three.js scene graph 
+// without complex context passing or imperative handles for every rocket.
+// Since only one player moves at a time, we can track the "active" mesh.
+export const activeRocketRef: React.MutableRefObject<THREE.Group | null> = { current: null };
+
 
 const CameraController = memo(() => {
   const { camera, size } = useThree();
@@ -83,30 +104,44 @@ const CameraController = memo(() => {
     // 1. FOLLOW MODE
     if (shouldFollowPlayer && !isResettingRef.current) {
         const currentPlayer = players[currentPlayerIndex];
+        
         if (currentPlayer) {
-            // Get position of current player
-            const playerPos = getTilePosition(currentPlayer.position);
-            const targetX = playerPos[0];
-            const targetZ = playerPos[2];
+            let targetX, targetZ;
+
+            // PREFERRED: Follow the actual rocket mesh if available (handles animation interpolation)
+            if (activeRocketRef.current && currentPlayer.isMoving) {
+                const worldPos = new THREE.Vector3();
+                activeRocketRef.current.getWorldPosition(worldPos);
+                targetX = worldPos.x;
+                targetZ = worldPos.z;
+            } else {
+                // FALLBACK: Follow the target tile position (teleport, static state, etc.)
+                const playerPos = getTilePosition(currentPlayer.position);
+                targetX = playerPos[0];
+                targetZ = playerPos[2];
+            }
 
             // Smoothly move controls target to player
-            const dampSpeed = 3.0; 
             
             // Current target
             const cx = controlsRef.current.target.x;
             const cz = controlsRef.current.target.z;
 
             // Lerp target
-            controlsRef.current.target.x = THREE.MathUtils.lerp(cx, targetX, dampSpeed * delta);
-            controlsRef.current.target.z = THREE.MathUtils.lerp(cz, targetZ, dampSpeed * delta);
+            // Use a slightly faster damping speed for following the mesh to keep it in frame
+            const followSpeed = CAMERA_DAMPING_SPEED * CAMERA_FOLLOW_SPEED_MULTIPLIER; 
+            controlsRef.current.target.x = THREE.MathUtils.lerp(cx, targetX, followSpeed * delta);
+            controlsRef.current.target.z = THREE.MathUtils.lerp(cz, targetZ, followSpeed * delta);
             
             // Smoothly interpolate zoom
             const currentZoom = camera.zoom;
-            // Target zoom is closer
-            const targetZoom = Math.min(CLOSE_ZOOM_LEVEL, 100); 
+            // Calculate target zoom dynamically based on screen size
+            const defaultZoom = calculateDefaultZoom();
+            const targetZoom = getCloseZoomLevel(defaultZoom);
 
-            if (Math.abs(currentZoom - targetZoom) > 0.1) {
-                camera.zoom = THREE.MathUtils.lerp(currentZoom, targetZoom, dampSpeed * delta);
+            if (Math.abs(currentZoom - targetZoom) > ZOOM_EPSILON) {
+                // Slower zoom interpolation for smoother effect
+                camera.zoom = THREE.MathUtils.lerp(currentZoom, targetZoom, CAMERA_DAMPING_SPEED * 0.8 * delta);
                 camera.updateProjectionMatrix();
             }
 
@@ -121,13 +156,10 @@ const CameraController = memo(() => {
     // 2. RESET MODE (Smooth transition back to full board)
     else if (isResettingRef.current) {
         const targetZoom = calculateDefaultZoom();
-        const targetPos = new THREE.Vector3(0, 0, 0);
         
-        const dampSpeed = 3.0;
-
         // Interpolate Zoom
-        if (Math.abs(camera.zoom - targetZoom) > 0.1) {
-            camera.zoom = THREE.MathUtils.lerp(camera.zoom, targetZoom, dampSpeed * delta);
+        if (Math.abs(camera.zoom - targetZoom) > ZOOM_EPSILON) {
+            camera.zoom = THREE.MathUtils.lerp(camera.zoom, targetZoom, CAMERA_DAMPING_SPEED * delta);
             camera.updateProjectionMatrix();
         } else {
             camera.zoom = targetZoom;
@@ -138,9 +170,9 @@ const CameraController = memo(() => {
         const cx = controlsRef.current.target.x;
         const cz = controlsRef.current.target.z;
         
-        if (Math.abs(cx) > 0.05 || Math.abs(cz) > 0.05) {
-             controlsRef.current.target.x = THREE.MathUtils.lerp(cx, 0, dampSpeed * delta);
-             controlsRef.current.target.z = THREE.MathUtils.lerp(cz, 0, dampSpeed * delta);
+        if (Math.abs(cx) > POSITION_SNAP_EPSILON || Math.abs(cz) > POSITION_SNAP_EPSILON) {
+             controlsRef.current.target.x = THREE.MathUtils.lerp(cx, 0, CAMERA_DAMPING_SPEED * delta);
+             controlsRef.current.target.z = THREE.MathUtils.lerp(cz, 0, CAMERA_DAMPING_SPEED * delta);
         } else {
              controlsRef.current.target.set(0, 0, 0);
         }
@@ -152,8 +184,8 @@ const CameraController = memo(() => {
         controlsRef.current.update();
 
         // Check completion
-        const zoomDone = Math.abs(camera.zoom - targetZoom) < 0.1;
-        const posDone = Math.abs(controlsRef.current.target.x) < 0.1 && Math.abs(controlsRef.current.target.z) < 0.1;
+        const zoomDone = Math.abs(camera.zoom - targetZoom) < ZOOM_EPSILON;
+        const posDone = Math.abs(controlsRef.current.target.x) < POSITION_COMPLETION_EPSILON && Math.abs(controlsRef.current.target.z) < POSITION_COMPLETION_EPSILON;
 
         if (zoomDone && posDone) {
             isResettingRef.current = false;
@@ -174,8 +206,8 @@ const CameraController = memo(() => {
           const currentZoom = camera.zoom;
           const currentTarget = controlsRef.current.target;
 
-          const zoomChanged = Math.abs(currentZoom - defaultZoom) > 0.1;
-          const posChanged = Math.abs(currentTarget.x) > 0.5 || Math.abs(currentTarget.z) > 0.5;
+          const zoomChanged = Math.abs(currentZoom - defaultZoom) > ZOOM_EPSILON;
+          const posChanged = Math.abs(currentTarget.x) > MANUAL_MOVE_THRESHOLD || Math.abs(currentTarget.z) > MANUAL_MOVE_THRESHOLD;
 
           const isDefault = !zoomChanged && !posChanged;
           

@@ -3,6 +3,7 @@ import { useSpring, animated } from '@react-spring/three';
 import * as THREE from 'three';
 import { useGameStore, type Player } from '../store/useGameStore';
 import { getTilePosition, PLAYER_EMOJIS } from '../utils/boardUtils';
+import { activeRocketRef } from '../App';
 
 interface RocketProps {
   player: Player;
@@ -10,14 +11,17 @@ interface RocketProps {
 }
 
 const ROCKET_ROTATION: [number, number, number] = [-Math.PI / 2, 0, 0];
-const SPRING_CONFIG = { mass: 1, tension: 170, friction: 26 };
-const SCALE_SPRING_CONFIG = { mass: 1, tension: 300, friction: 20 };
-const LIFTED_SCALE = 1.5; // Increased from 1.3
+// Slower spring for movement
+const SPRING_CONFIG = { mass: 1, tension: 120, friction: 30 }; // Reduced tension, increased friction
+const SCALE_SPRING_CONFIG = { mass: 1, tension: 200, friction: 25 };
+const LIFTED_SCALE = 1.5; 
 const LANDED_SCALE = 1.0;
 
 type Phase = 'idle' | 'lifting' | 'moving' | 'landing';
 
 export const Rocket = memo(({ player, onMovementComplete }: RocketProps) => {
+  const groupRef = useRef<THREE.Group>(null!);
+
   const rocketTarget = useMemo<[number, number, number]>(() => {
     const pos = getTilePosition(player.position);
     return [pos[0], 0.1, pos[2]];
@@ -28,6 +32,18 @@ export const Rocket = memo(({ player, onMovementComplete }: RocketProps) => {
   
   // Ref to track previous phase for transition logic
   const prevPhase = useRef<Phase>('idle');
+
+  // Sync active rocket ref for camera following
+  useEffect(() => {
+    if (player.isMoving && groupRef.current) {
+      activeRocketRef.current = groupRef.current;
+    } else if (activeRocketRef.current === groupRef.current && !player.isMoving) {
+        // Only clear if we were the active one
+        // Wait a tick to ensure camera logic doesn't snap
+        activeRocketRef.current = null;
+    }
+  }, [player.isMoving]);
+
 
   // Subscribe to store for transition detection (setState in subscription callback is lint-safe)
   useEffect(() => {
@@ -132,7 +148,7 @@ export const Rocket = memo(({ player, onMovementComplete }: RocketProps) => {
   const isVisible = player.position > 1 || phase !== 'idle';
 
   return (
-    <animated.group position={position} scale={s} visible={isVisible}>
+    <animated.group ref={groupRef} position={position} scale={s} visible={isVisible}>
       <mesh rotation={ROCKET_ROTATION}>
         <planeGeometry args={[1.0, 1.0]} />
         <meshBasicMaterial
