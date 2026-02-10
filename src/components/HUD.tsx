@@ -20,6 +20,7 @@ const selectResetGame = (s: ReturnType<typeof useGameStore.getState>) => s.reset
 const selectPlayerInitials = (s: ReturnType<typeof useGameStore.getState>) => s.playerInitials;
 const selectIsDefaultView = (s: ReturnType<typeof useGameStore.getState>) => s.isDefaultView;
 const selectTriggerCameraReset = (s: ReturnType<typeof useGameStore.getState>) => s.triggerCameraReset;
+const selectShouldFollowPlayer = (s: ReturnType<typeof useGameStore.getState>) => s.shouldFollowPlayer;
 
 const SetupScreen = memo(() => {
   const setupGame = useGameStore(selectSetupGame);
@@ -141,8 +142,10 @@ DicePanel.displayName = 'DicePanel';
 const ResetViewButton = memo(() => {
     const isDefaultView = useGameStore(selectIsDefaultView);
     const triggerCameraReset = useGameStore(selectTriggerCameraReset);
+    const shouldFollowPlayer = useGameStore(selectShouldFollowPlayer);
     
-    if (isDefaultView) return null;
+    // Hide if in default view OR if camera is currently following player
+    if (isDefaultView || shouldFollowPlayer) return null;
     
     return (
         <div className="absolute bottom-6 left-6 pointer-events-auto">

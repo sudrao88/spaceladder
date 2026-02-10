@@ -30,6 +30,7 @@ interface GameState {
   // Camera State
   isDefaultView: boolean;
   shouldResetCamera: boolean;
+  shouldFollowPlayer: boolean;
 
   // Actions
   setupGame: (playerCount: number) => void;
@@ -47,6 +48,7 @@ interface GameState {
   setIsDefaultView: (isDefault: boolean) => void;
   triggerCameraReset: () => void;
   acknowledgeCameraReset: () => void;
+  setShouldFollowPlayer: (shouldFollow: boolean) => void;
 }
 
 const POST_TELEPORT_DELAY_MS = 800;
@@ -65,6 +67,7 @@ export const useGameStore = create<GameState>()(
       playerInitials: {},
       isDefaultView: true,
       shouldResetCamera: false,
+      shouldFollowPlayer: false,
 
       setupGame: (playerCount) => {
         const colors: PlayerColor[] = ['red', 'blue', 'green', 'yellow'];
@@ -157,7 +160,8 @@ export const useGameStore = create<GameState>()(
         }
 
         const newPlayers = players.map(p => p.id === playerId ? { ...p, isMoving: true, position: targetPos } : p);
-        set({ players: newPlayers });
+        // Enable camera follow mode when movement starts
+        set({ players: newPlayers, shouldFollowPlayer: true, isDefaultView: false });
       },
 
       teleportPlayer: (playerId, targetTile) => {
@@ -176,9 +180,11 @@ export const useGameStore = create<GameState>()(
         const { playerId, destination } = pendingWormhole;
         
         // Teleport the player
+        // Keep camera following during teleport
         set((state) => ({
             players: state.players.map(p => p.id === playerId ? { ...p, position: destination } : p),
-            pendingWormhole: null
+            pendingWormhole: null,
+            shouldFollowPlayer: true // Ensure camera follows to destination
         }));
         
         // Wait a bit before next turn
@@ -214,7 +220,15 @@ export const useGameStore = create<GameState>()(
 
         const nextIndex = (currentPlayerIndex + 1) % players.length;
         // RESET TURN PROCESSING AND DICE HERE
-        set({ currentPlayerIndex: nextIndex, diceValue: null, isTurnProcessing: false });
+        // Also reset camera to default view for the next player's roll
+        set({ 
+            currentPlayerIndex: nextIndex, 
+            diceValue: null, 
+            isTurnProcessing: false,
+            shouldFollowPlayer: false,
+            shouldResetCamera: true, // Trigger camera reset to default
+            isDefaultView: true
+        });
       },
       
       resetGame: () => {
@@ -228,13 +242,16 @@ export const useGameStore = create<GameState>()(
             currentPlayerIndex: 0,
             isRolling: false,
             isTurnProcessing: false,
-            shouldResetCamera: true
+            shouldResetCamera: true,
+            shouldFollowPlayer: false,
+            isDefaultView: true
           });
       },
 
       setIsDefaultView: (isDefault) => set({ isDefaultView: isDefault }),
-      triggerCameraReset: () => set({ shouldResetCamera: true }),
+      triggerCameraReset: () => set({ shouldResetCamera: true, shouldFollowPlayer: false }),
       acknowledgeCameraReset: () => set({ shouldResetCamera: false }),
+      setShouldFollowPlayer: (shouldFollow) => set({ shouldFollowPlayer: shouldFollow }),
     }),
     {
       name: 'wormhole-warp-storage',
