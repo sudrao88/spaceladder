@@ -21,9 +21,9 @@ export const PlayerInitials = memo(() => {
   const players = useGameStore(selectPlayers);
   const finalizeSetup = useGameStore(selectFinalizeSetup);
 
-  const [initials, setInitials] = useState<Record<number, string>>(() => {
-    const map: Record<number, string> = {};
-    for (const p of players) map[p.id] = '';
+  const [initials, setInitials] = useState<Record<number, string[]>>(() => {
+    const map: Record<number, string[]> = {};
+    for (const p of players) map[p.id] = ['', '', ''];
     return map;
   });
 
@@ -35,19 +35,17 @@ export const PlayerInitials = memo(() => {
   // Refs for the 3 input boxes per player
   const inputRefs = useRef<Record<number, (HTMLInputElement | null)[]>>({});
 
-  const allFilled = players.every(p => initials[p.id]?.length > 0);
+  const allFilled = players.every(p => {
+    const chars = initials[p.id];
+    return chars && chars.some(c => c !== '');
+  });
 
   const handleCharInput = useCallback((playerId: number, charIndex: number, value: string) => {
     const char = value.toUpperCase().replace(/[^A-Z]/g, '');
     setInitials(prev => {
-      const current = prev[playerId] || '';
-      const chars = current.split('');
-      // Pad to 3
-      while (chars.length < 3) chars.push('');
+      const chars = [...(prev[playerId] || ['', '', ''])];
       chars[charIndex] = char;
-      // Trim trailing empties
-      const trimmed = chars.join('').replace(/\s+$/, '');
-      return { ...prev, [playerId]: trimmed };
+      return { ...prev, [playerId]: chars };
     });
 
     // Auto-advance to next input box
@@ -59,20 +57,16 @@ export const PlayerInitials = memo(() => {
 
   const handleKeyDown = useCallback((playerId: number, charIndex: number, e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Backspace') {
-      const current = initials[playerId] || '';
-      const chars = current.split('');
-      while (chars.length < 3) chars.push('');
+      const chars = initials[playerId] || ['', '', ''];
 
       if (chars[charIndex] === '' && charIndex > 0) {
-        // Move to previous box
+        // Move to previous box and clear it
         const prevInput = inputRefs.current[playerId]?.[charIndex - 1];
         prevInput?.focus();
-        // Clear previous
         setInitials(prev => {
-          const c = (prev[playerId] || '').split('');
-          while (c.length < 3) c.push('');
+          const c = [...(prev[playerId] || ['', '', ''])];
           c[charIndex - 1] = '';
-          return { ...prev, [playerId]: c.join('').replace(/\s+$/, '') };
+          return { ...prev, [playerId]: c };
         });
         e.preventDefault();
       }
@@ -115,7 +109,10 @@ export const PlayerInitials = memo(() => {
   }, []);
 
   const handleStartGame = useCallback(() => {
-    finalizeSetup(initials, finalOrder);
+    const finalInitials = Object.fromEntries(
+      Object.entries(initials).map(([id, chars]) => [id, chars.join('')])
+    );
+    finalizeSetup(finalInitials, finalOrder);
   }, [finalizeSetup, initials, finalOrder]);
 
   return (
@@ -132,9 +129,8 @@ export const PlayerInitials = memo(() => {
       <div className="flex flex-col gap-4 mb-8">
         {displayOrder.map((playerId, idx) => {
           const emoji = PLAYER_EMOJIS[playerId % PLAYER_EMOJIS.length];
-          const playerInitials = initials[playerId] || '';
-          const chars = playerInitials.split('');
-          while (chars.length < 3) chars.push('');
+          const chars = initials[playerId] || ['', '', ''];
+          const playerInitials = chars.join('');
 
           // Ensure ref array exists
           if (!inputRefs.current[playerId]) {

@@ -86,7 +86,8 @@ export const useGameStore = create<GameState>()(
 
       finalizeSetup: (initials, playerOrder) => {
         const { players } = get();
-        const reorderedPlayers = playerOrder.map(id => players.find(p => p.id === id)!);
+        const playerMap = new Map(players.map(p => [p.id, p]));
+        const reorderedPlayers = playerOrder.map(id => playerMap.get(id)!);
         set({
           playerInitials: initials,
           players: reorderedPlayers,
