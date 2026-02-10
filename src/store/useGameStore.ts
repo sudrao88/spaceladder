@@ -21,6 +21,7 @@ interface GameState {
   currentPlayerIndex: number;
   diceValue: number | null;
   isRolling: boolean;
+  isTurnProcessing: boolean; // New flag to prevent overlapping turns
   gameStatus: 'setup' | 'initials' | 'playing' | 'finished';
   winner: Player | null;
   pendingWormhole: PendingWormhole | null;
@@ -57,6 +58,7 @@ export const useGameStore = create<GameState>()(
       currentPlayerIndex: 0,
       diceValue: null,
       isRolling: false,
+      isTurnProcessing: false,
       gameStatus: 'setup',
       winner: null,
       pendingWormhole: null,
@@ -79,6 +81,7 @@ export const useGameStore = create<GameState>()(
           winner: null,
           diceValue: null,
           isRolling: false,
+          isTurnProcessing: false,
           pendingWormhole: null,
           playerInitials: {},
         });
@@ -98,20 +101,16 @@ export const useGameStore = create<GameState>()(
       },
 
       rollDice: () => {
-        const { isRolling, gameStatus, players, pendingWormhole } = get();
+        const { isRolling, gameStatus, isTurnProcessing } = get();
         
-        // Prevent roll if:
-        // 1. Already rolling
-        // 2. Game is not in 'playing' state
-        // 3. Any player is currently moving
-        // 4. There is a pending wormhole teleportation
-        const isAnyPlayerMoving = players.some(p => p.isMoving);
-        if (isRolling || gameStatus !== 'playing' || isAnyPlayerMoving || pendingWormhole) {
+        // Comprehensive guard using isTurnProcessing
+        if (isRolling || isTurnProcessing || gameStatus !== 'playing') {
             return;
         }
 
         (async () => {
-          set({ isRolling: true, diceValue: null });
+          // Immediately set turn as processing to lock out future calls
+          set({ isRolling: true, isTurnProcessing: true, diceValue: null });
           
           const delay = (ms: number) => new Promise(res => setTimeout(res, ms));
           
@@ -124,12 +123,15 @@ export const useGameStore = create<GameState>()(
           // Wait a bit AFTER the dice stops and shows the value before moving the player
           await delay(800);
           
-          const { players: updatedPlayers, currentPlayerIndex } = get();
-          const currentPlayer = updatedPlayers[currentPlayerIndex];
+          const { players, currentPlayerIndex } = get();
+          const currentPlayer = players[currentPlayerIndex];
           
           if (currentPlayer) {
             // Trigger movement
             get().movePlayer(currentPlayer.id, roll);
+          } else {
+             // Safety: if no player, reset turn processing
+             set({ isTurnProcessing: false });
           }
         })();
       },
@@ -137,7 +139,10 @@ export const useGameStore = create<GameState>()(
       movePlayer: (playerId, steps) => {
         const { players } = get();
         const playerIndex = players.findIndex(p => p.id === playerId);
-        if (playerIndex === -1) return;
+        if (playerIndex === -1) {
+            set({ isTurnProcessing: false });
+            return;
+        }
 
         const player = players[playerIndex];
 
@@ -196,17 +201,20 @@ export const useGameStore = create<GameState>()(
         const { players, currentPlayerIndex } = get();
         const currentPlayer = players[currentPlayerIndex];
 
-        if (!currentPlayer) return;
+        if (!currentPlayer) {
+            set({ isTurnProcessing: false });
+            return;
+        }
 
         // Check win condition
         if (currentPlayer.position === 100) {
-            set({ gameStatus: 'finished', winner: currentPlayer });
+            set({ gameStatus: 'finished', winner: currentPlayer, isTurnProcessing: false });
             return;
         }
 
         const nextIndex = (currentPlayerIndex + 1) % players.length;
-        // RESET DICE ONLY HERE - When turn actually ends
-        set({ currentPlayerIndex: nextIndex, diceValue: null });
+        // RESET TURN PROCESSING AND DICE HERE
+        set({ currentPlayerIndex: nextIndex, diceValue: null, isTurnProcessing: false });
       },
       
       resetGame: () => {
@@ -219,6 +227,7 @@ export const useGameStore = create<GameState>()(
             playerInitials: {},
             currentPlayerIndex: 0,
             isRolling: false,
+            isTurnProcessing: false,
             shouldResetCamera: true
           });
       },
