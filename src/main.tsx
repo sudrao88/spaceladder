@@ -8,7 +8,9 @@ import App from './App';
 // the auto-reload on SW update (which interrupts mid-game state).
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js', { scope: '/' });
+    navigator.serviceWorker.register('/sw.js', { scope: '/' }).catch(error => {
+      console.error('Service Worker registration failed:', error);
+    });
   });
 }
 
