@@ -175,7 +175,7 @@ export const Dice = memo(({ value, isRolling }: DiceProps) => {
     }, [baseAssets, value, isRolling]); // Re-run when these change
 
     // Frame update for rotation animation
-    useFrame((_state, delta) => {
+    useFrame((_, delta) => {
         if (!groupRef.current) return;
 
         if (isRolling) {

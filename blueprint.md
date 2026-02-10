@@ -1,102 +1,35 @@
-# Wormhole Warp - Project Blueprint
+# Spaceladder Game - Blueprint
 
 ## Overview
-Wormhole Warp is a modern, 3D/2D web-based board game built with React, Three.js (React Three Fiber), and Tailwind CSS. It reimagines the classic "Snakes and Ladders" mechanic in a space theme, featuring rocket ships, wormholes, and a sleek dark aesthetic.
 
-## Current Features & Implementation
+Spaceladder is an interactive, space-themed board game built with React. This document outlines the project's architecture, components, and the plan for its deployment.
 
-### Core Gameplay
-*   **Board:** 10x10 grid (100 tiles).
-*   **Layout:** "Snake" pattern starting from Tile 1 at the Bottom-Left corner, winding up to Tile 100 at the Top-Left corner.
-*   **Movement:** Players roll a dice and move automatically.
-*   **Wormholes:** Random chance (25%) to trigger a "wormhole" upon landing, which can teleport the player forward (Boost) or backward (Glitch).
-*   **Win Condition:** First player to reach Tile 100 wins.
-*   **End Game:** If a player rolls a number higher than the remaining steps to reach Tile 100, they stay in their current position and the turn passes.
+## Project Outline
 
-### Visuals & UI
-*   **View:** 2D Orthographic Top-Down view for a clear, board-game feel.
-*   **Theme:** Dark space theme with neon accents (Cyan, Purple).
-*   **Board Rendering:** 2D flat tiles with outlines and numbering.
-*   **Player Tokens:** 
-    *   Represented by Emojis (🚀, 🛰️, 👽, 🛸).
-    *   Rendered as 3D Planes using `CanvasTexture` for crisp visibility and correct sorting in the 3D scene.
-    *   Animated movement using `react-spring`.
-*   **HUD (Heads-Up Display):**
-    *   **Player List:** Top-Left corner, showing active player and positions. The active player is highlighted with a white outline around the entire card.
-    *   **Controls:** The Dice is positioned in the **bottom-right corner** with increased padding (`bottom-12 right-12`).
-    *   **Dice (Moon):** 
-        *   Replaced the standard cube dice with a bright, 3D Moon sphere.
-        *   Procedurally generated texture with craters, noise, and bump mapping for a realistic rock surface.
-        *   The text ("ROLL" or the rolled number) is rendered as if **carved** deeply into the moon's surface, using dynamic texture generation.
-        *   Uses the "Iceland" font for a sci-fi aesthetic.
-        *   Moon rotates clockwise when idle and spins wildly when rolling.
-        *   Self-illuminated (emissive) to pop against the dark background.
-    *   **Reset View Button:** Bottom-Left corner (only visible when zoomed/panned), now part of the HUD layer to ensure constant visibility.
-    *   **New Game Button:** Top-Right corner. Allows resetting the game via a confirmation dialog.
-*   **Wormhole Dialog:**
-    *   A modal dialog that appears when a player lands on a wormhole.
-    *   Shows a "Boost" or "Glitch" message based on the outcome.
-    *   Features a "Teleport" button to trigger the warp animation.
-    *   Includes a "Warping..." animation with star streaks and a shaking emoji.
-*   **Responsiveness:**
-    *   **Centering:** Board is always centered in the viewport.
-    *   **Mobile:** Enforces landscape mode via an overlay on portrait screens.
-    *   **Zoom:** "Reset View" button appears when the user pans/zooms away from the default view.
+- **Framework:** React with TypeScript
+- **Styling:** Tailwind CSS
+- **State Management:** Zustand
+- **3D Graphics & Animations:** React Three Fiber, React Spring, Framer Motion
+- **Core Components:**
+    - `Board`: Renders the game board with individual tiles.
+    - `Rocket`: Represents the player's piece on the board.
+    - `Dice`: A clickable component to simulate a dice roll.
+    - `HUD`: Displays game information like the current roll, player position, and messages.
+    - `Starfield`: A background component creating a sense of movement through space.
+    - `WormholeDialog`: A modal for handling wormhole interactions.
+- **State Management (`useGameStore.ts`):**
+    - `playerPosition`: The current tile number of the player.
+    - `roll`: The result of the last dice roll.
+    - `message`: Game messages displayed to the player.
+    - `actions`: Functions to manipulate the game state, such as `rollDice` and `movePlayer`.
+- **Game Logic (`useGameController.ts`):**
+    - Orchestrates the game flow, responding to player actions.
+    - Handles dice rolls, player movement, and interactions with special tiles like wormholes.
 
-### Technical Stack
-*   **Framework:** React (Vite).
-*   **3D Engine:** @react-three/fiber, @react-three/drei.
-*   **Animation:** @react-spring/three, framer-motion.
-*   **State Management:** Zustand (persisted state).
-*   **Styling:** Tailwind CSS.
+## Deployment Plan
 
-## Recent Changes (Session Log)
-
-1.  **Board Layout Overhaul:**
-    *   Changed from 14x10 Spiral back to 10x10 Snake pattern.
-    *   Aligned Tile 1 to Bottom-Left and Tile 100 to Top-Left.
-    *   Centered the board in the 3D viewport (0,0,0).
-
-2.  **UI/HUD Refinement:**
-    *   Moved HUD controls to a smaller right sidebar (`w-40`).
-    *   Replaced the simple "Roll" text with a 3D animated Dice component inside the HUD.
-    *   Added player emojis to the HUD player list.
-    *   Removed colored side badges from the player list items and improved the active player highlight to be a full white border.
-
-3.  **Player Token Upgrade:**
-    *   Converted tokens from simple shapes to Emoji-based textures.
-    *   Implemented `CanvasTexture` generation for Emojis to ensure they render correctly in the 3D scene without CSS layering issues.
-    *   Removed text labels from the tokens on the board (kept in HUD).
-    
-4.  **Wormhole Dialog Implementation:**
-    *   Added `WormholeDialog` component to handle wormhole interactions.
-    *   Integrated framer-motion for smooth animations.
-    *   Added visual feedback for "Boost" (Cyan) and "Glitch" (Purple) events.
-
-5.  **Reset View Button Fix:**
-    *   Moved the "Reset View" button from inside the 3D Canvas (`<Html>`) to the external `HUD` component.
-    *   Updated `useGameStore` to manage camera state (`isDefaultView`, `shouldResetCamera`) to bridge the UI and the Canvas.
-    *   Ensured the button remains visible and functional even when the user zooms in significantly.
-
-6.  **Bug Fixes & Polish:**
-    *   Fixed `useGameController` import error (Type-only import).
-    *   Fixed HUD style conflict (shorthand vs longhand border properties).
-    *   Ensured "Reset View" button position is stable.
-
-7.  **Gameplay Logic Refinement:**
-    *   **End-Game Mechanic:**
-        *   Removed "bounce back" behavior when a dice roll exceeds the remaining steps to 100.
-        *   Implemented "block" behavior: if the roll is too high, the player stays on the current tile and the turn passes to the next player.
-
-8.  **New Game Feature:**
-    *   Added a "New Game" button (reset icon) to the top-right corner of the HUD.
-    *   Implemented a confirmation dialog to prevent accidental resets.
-    *   Updated `useGameStore` to correctly reset all game state (players, winner, dice, wormholes, camera).
-
-9.  **Dice Overhaul (Moon Dice):**
-    *   Replaced cube dice with a 3D Moon sphere.
-    *   Implemented procedural texture generation (Color + Bump maps) for craters and noise.
-    *   Integrated text ("ROLL" and numbers) directly into the texture with "carved" visual effects (inner shadows/highlights).
-    *   Moved Dice to bottom-right with increased padding.
-    *   Adopted "Iceland" font for sci-fi look.
-    *   Made the moon brighter and self-illuminated.
+- **Build Tool:** Vite
+- **Deployment Target:** Firebase Hosting
+- **Steps:**
+    1.  Run `npm run build` to compile the TypeScript code and package the application for production. This will create a `dist` directory with the static assets.
+    2.  Deploy the contents of the `dist` directory to Firebase Hosting.
