@@ -7,6 +7,10 @@ const selectSetMoving = (s: ReturnType<typeof useGameStore.getState>) => s.setMo
 const selectNextTurn = (s: ReturnType<typeof useGameStore.getState>) => s.nextTurn;
 const selectSetPendingWormhole = (s: ReturnType<typeof useGameStore.getState>) => s.setPendingWormhole;
 
+/** Inclusive random integer in [min, max] */
+const randomInt = (min: number, max: number): number =>
+  Math.floor(Math.random() * (max - min + 1)) + min;
+
 export const GameController = () => {
   const setMoving = useGameStore(selectSetMoving);
   const nextTurn = useGameStore(selectNextTurn);
@@ -15,32 +19,51 @@ export const GameController = () => {
   const checkWormhole = useCallback((player: Player) => {
       const currentTile = player.position;
 
-      // No wormholes on start or finish
-      if (currentTile === 1 || currentTile === 100) {
+      // No wormholes on start, near-finish, or finish tiles
+      if (currentTile <= 1 || currentTile >= 98) {
           nextTurn();
           return;
       }
 
-      // 25% Chance
-      const isWormhole = Math.random() < 0.25;
-
-      if (isWormhole) {
-          // Destination between 2 and 99 (inclusive) to avoid sending to tile 1 or 100
-          let destination = Math.floor(Math.random() * 98) + 2; 
-          
-          if (destination === currentTile) {
-               nextTurn();
-               return;
-          }
-
-          const isBoost = destination > currentTile;
-
-          // Show dialog instead of teleporting immediately
-          setPendingWormhole({ playerId: player.id, destination, isBoost });
-
-      } else {
+      // 25% chance of triggering a wormhole
+      if (Math.random() >= 0.25) {
           nextTurn();
+          return;
       }
+
+      // 15% of wormholes are drastic jumps for excitement
+      const isDrastic = Math.random() < 0.15;
+
+      // 65% forward / 35% backward — biased to keep the game moving
+      const isForward = Math.random() < 0.65;
+
+      let jumpDistance: number;
+      if (isForward) {
+          jumpDistance = isDrastic
+              ? randomInt(20, 40)   // drastic forward leap
+              : randomInt(5, 15);   // normal forward hop
+      } else {
+          jumpDistance = isDrastic
+              ? randomInt(15, 30)   // drastic backward fall
+              : randomInt(3, 10);   // normal backward slip
+      }
+
+      let destination = isForward
+          ? currentTile + jumpDistance
+          : currentTile - jumpDistance;
+
+      // Clamp: never below tile 2 (avoid tile 1), never above tile 97
+      destination = Math.max(2, Math.min(97, destination));
+
+      if (destination === currentTile) {
+          nextTurn();
+          return;
+      }
+
+      const isBoost = destination > currentTile;
+
+      // Show dialog instead of teleporting immediately
+      setPendingWormhole({ playerId: player.id, destination, isBoost });
   }, [nextTurn, setPendingWormhole]);
 
   const handleMovementComplete = useCallback((playerId: number) => {
