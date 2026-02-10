@@ -98,7 +98,7 @@ const CameraController = memo(() => {
   }, [shouldResetCamera, acknowledgeCameraReset]);
 
   // Camera Logic Loop (Follow + Smooth Reset)
-  useFrame((state, delta) => {
+  useFrame((_state, delta) => {
     if (!controlsRef.current) return;
 
     // 1. FOLLOW MODE
