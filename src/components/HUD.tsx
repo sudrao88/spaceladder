@@ -2,6 +2,7 @@ import { memo, useState } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { Dice } from './Dice';
 import { WormholeDialog } from './WormholeDialog';
+import { PlayerInitials } from './PlayerInitials';
 import { useGameStore } from '../store/useGameStore';
 import { PLAYER_EMOJIS } from '../utils/boardUtils';
 
@@ -16,6 +17,7 @@ const selectWinner = (s: ReturnType<typeof useGameStore.getState>) => s.winner;
 const selectSetupGame = (s: ReturnType<typeof useGameStore.getState>) => s.setupGame;
 const selectRollDice = (s: ReturnType<typeof useGameStore.getState>) => s.rollDice;
 const selectResetGame = (s: ReturnType<typeof useGameStore.getState>) => s.resetGame;
+const selectPlayerInitials = (s: ReturnType<typeof useGameStore.getState>) => s.playerInitials;
 const selectIsDefaultView = (s: ReturnType<typeof useGameStore.getState>) => s.isDefaultView;
 const selectTriggerCameraReset = (s: ReturnType<typeof useGameStore.getState>) => s.triggerCameraReset;
 
@@ -47,12 +49,17 @@ SetupScreen.displayName = 'SetupScreen';
 const FinishedScreen = memo(() => {
   const winner = useGameStore(selectWinner);
   const resetGame = useGameStore(selectResetGame);
+  const playerInitials = useGameStore(selectPlayerInitials);
+
+  const winnerId = winner?.id ?? 0;
+  const winnerLabel = playerInitials[winnerId] || `P${winnerId + 1}`;
+  const winnerEmoji = PLAYER_EMOJIS[winnerId % PLAYER_EMOJIS.length];
 
   return (
     <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-black/90 text-white pointer-events-auto">
       <h1 className="text-5xl font-bold text-yellow-400 mb-4 animate-pulse">GAME OVER</h1>
       <h2 className="text-3xl mb-8">
-          Player <span style={{ color: winner?.color }}>{(winner?.id ?? 0) + 1}</span> Wins!
+          {winnerEmoji} <span style={{ color: winner?.color }}>{winnerLabel}</span> Wins!
       </h2>
       <button
         onClick={resetGame}
@@ -72,6 +79,7 @@ interface PlayerListProps {
 
 const PlayerList = memo(({ currentPlayerIndex }: PlayerListProps) => {
   const players = useGameStore(selectPlayers);
+  const playerInitials = useGameStore(selectPlayerInitials);
 
   return (
     <div className="absolute top-4 left-4 flex flex-col gap-3 pointer-events-auto">
@@ -85,7 +93,7 @@ const PlayerList = memo(({ currentPlayerIndex }: PlayerListProps) => {
           <span className="text-2xl" role="img" aria-label="player-token">
             {PLAYER_EMOJIS[p.id % PLAYER_EMOJIS.length]}
           </span>
-          <span className="text-white font-mono font-bold text-base">P{p.id + 1}</span>
+          <span className="text-white font-mono font-bold text-base">{playerInitials[p.id] || `P${p.id + 1}`}</span>
           <span className="text-cyan-300 ml-2 text-sm">Tile: {p.position}</span>
         </div>
       ))}
@@ -208,6 +216,10 @@ export const HUD = memo(() => {
 
   if (gameStatus === 'setup') {
     return <SetupScreen />;
+  }
+
+  if (gameStatus === 'initials') {
+    return <PlayerInitials />;
   }
 
   if (gameStatus === 'finished') {

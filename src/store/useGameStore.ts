@@ -21,16 +21,18 @@ interface GameState {
   currentPlayerIndex: number;
   diceValue: number | null;
   isRolling: boolean;
-  gameStatus: 'setup' | 'playing' | 'finished';
+  gameStatus: 'setup' | 'initials' | 'playing' | 'finished';
   winner: Player | null;
   pendingWormhole: PendingWormhole | null;
-  
+  playerInitials: Record<number, string>;
+
   // Camera State
   isDefaultView: boolean;
   shouldResetCamera: boolean;
 
   // Actions
   setupGame: (playerCount: number) => void;
+  finalizeSetup: (initials: Record<number, string>, playerOrder: number[]) => void;
   rollDice: () => void;
   movePlayer: (playerId: number, steps: number) => void;
   teleportPlayer: (playerId: number, targetTile: number) => void;
@@ -39,7 +41,7 @@ interface GameState {
   nextTurn: () => void;
   setMoving: (playerId: number, isMoving: boolean) => void;
   resetGame: () => void;
-  
+
   // Camera Actions
   setIsDefaultView: (isDefault: boolean) => void;
   triggerCameraReset: () => void;
@@ -58,6 +60,7 @@ export const useGameStore = create<GameState>()(
       gameStatus: 'setup',
       winner: null,
       pendingWormhole: null,
+      playerInitials: {},
       isDefaultView: true,
       shouldResetCamera: false,
 
@@ -72,12 +75,24 @@ export const useGameStore = create<GameState>()(
         set({
           players: newPlayers,
           currentPlayerIndex: 0,
-          gameStatus: 'playing',
+          gameStatus: 'initials',
           winner: null,
           diceValue: null,
           isRolling: false,
           pendingWormhole: null,
-          shouldResetCamera: true
+          playerInitials: {},
+        });
+      },
+
+      finalizeSetup: (initials, playerOrder) => {
+        const { players } = get();
+        const reorderedPlayers = playerOrder.map(id => players.find(p => p.id === id)!);
+        set({
+          playerInitials: initials,
+          players: reorderedPlayers,
+          currentPlayerIndex: 0,
+          gameStatus: 'playing',
+          shouldResetCamera: true,
         });
       },
 
@@ -185,12 +200,13 @@ export const useGameStore = create<GameState>()(
       },
       
       resetGame: () => {
-          set({ 
-            gameStatus: 'setup', 
-            players: [], 
-            winner: null, 
-            diceValue: null, 
+          set({
+            gameStatus: 'setup',
+            players: [],
+            winner: null,
+            diceValue: null,
             pendingWormhole: null,
+            playerInitials: {},
             currentPlayerIndex: 0,
             isRolling: false,
             shouldResetCamera: true
@@ -203,12 +219,13 @@ export const useGameStore = create<GameState>()(
     }),
     {
       name: 'wormhole-warp-storage',
-      partialize: (state) => ({ 
-          players: state.players, 
+      partialize: (state) => ({
+          players: state.players,
           currentPlayerIndex: state.currentPlayerIndex,
           gameStatus: state.gameStatus,
-          winner: state.winner 
-      }), // Persist only essential state
+          winner: state.winner,
+          playerInitials: state.playerInitials,
+      }),
     }
   )
 );
