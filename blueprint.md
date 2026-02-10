@@ -36,6 +36,8 @@ Spaceladder is an interactive, space-themed board game built with React. This do
 - **Fixes:** 
     - Resolved camera snapping issue by managing internal state (`lastIsDefaultRef`) correctly.
     - Enabled correct damping for manual camera movement by ensuring `controls.update()` is called every frame.
+- **Revert:** Reverted the `Board` component from a complex instanced mesh with shaders back to a standard component-based mapping for stability and maintainability.
+- **Update:** Centered the tile numbers within each board tile and made all tiles a uniform dark grey color.
 
 ## Deployment Plan
 
