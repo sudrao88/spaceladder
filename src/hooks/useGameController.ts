@@ -34,8 +34,8 @@ export const GameController = () => {
       // 15% of wormholes are drastic jumps for excitement
       const isDrastic = Math.random() < 0.15;
 
-      // 65% forward / 35% backward — biased to keep the game moving
-      const isForward = Math.random() < 0.65;
+      // 57% forward / 43% backward — biased to keep the game moving
+      const isForward = Math.random() < 0.57;
 
       let jumpDistance: number;
       if (isForward) {
