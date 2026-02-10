@@ -2,91 +2,141 @@ import { memo, useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 
-const STAR_COUNT = 300;
-const SPREAD = 20; // stars span a 40x40 area centered on origin
-const DRIFT_SPEED = 0.1; // units per second
-const STAR_Y = -0.5; // below the board plane
+// Increased count to maintain density over a larger area
+const STAR_COUNT = 3000; 
+// Wider spread to cover the camera view when zoomed out
+const SPREAD = 200; 
+const DEPTH = 100;
 
-// Build star geometry once at module level to avoid Math.random() inside render
-function createStarGeometry(): THREE.BufferGeometry {
-  const positions = new Float32Array(STAR_COUNT * 3);
-  const colors = new Float32Array(STAR_COUNT * 3);
+const StarfieldShaderMaterial = {
+  uniforms: {
+    uTime: { value: 0 },
+    uColor: { value: new THREE.Color('#ffffff') },
+    uSize: { value: 6.0 }, // Restored visibility size
+  },
+  vertexShader: `
+    uniform float uTime;
+    uniform float uSize;
+    attribute float aSpeed;
+    attribute float aScale;
+    attribute vec3 aColor;
+    varying vec3 vColor;
 
-  for (let i = 0; i < STAR_COUNT; i++) {
-    const i3 = i * 3;
-    positions[i3] = (Math.random() - 0.5) * SPREAD * 2;
-    positions[i3 + 1] = STAR_Y - Math.random() * 0.3;
-    positions[i3 + 2] = (Math.random() - 0.5) * SPREAD * 2;
+    void main() {
+      vColor = aColor;
+      vec3 pos = position;
+      
+      // Move Z based on time and speed
+      float zRange = 100.0; // Matches DEPTH
+      float zOffset = uTime * aSpeed;
+      
+      // Infinite scroll logic
+      pos.z = mod(pos.z - zOffset + zRange * 0.5, zRange) - zRange * 0.5;
 
-    const brightness = 0.7 + Math.random() * 0.3;
-    const tint = Math.random();
-    if (tint < 0.15) {
-      // cyan tint
-      colors[i3] = brightness * 0.7;
-      colors[i3 + 1] = brightness;
-      colors[i3 + 2] = brightness;
-    } else if (tint < 0.25) {
-      // purple tint
-      colors[i3] = brightness * 0.85;
-      colors[i3 + 1] = brightness * 0.7;
-      colors[i3 + 2] = brightness;
-    } else {
-      colors[i3] = brightness;
-      colors[i3 + 1] = brightness;
-      colors[i3 + 2] = brightness;
+      vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);
+      
+      // Distance attenuation
+      gl_PointSize = uSize * aScale * (20.0 / -mvPosition.z);
+      
+      gl_Position = projectionMatrix * mvPosition;
     }
-  }
+  `,
+  fragmentShader: `
+    varying vec3 vColor;
 
-  const geo = new THREE.BufferGeometry();
-  geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-  geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
-  return geo;
-}
+    void main() {
+      vec2 center = gl_PointCoord - vec2(0.5);
+      float dist = length(center);
+      if (dist > 0.5) discard;
 
-/**
- * A lightweight drifting starfield rendered as a single Points object.
- * Stars slowly scroll in the –Z direction and wrap around, giving
- * the impression that the board is floating through space.
- */
+      // Soft circular particle
+      float alpha = 1.0 - smoothstep(0.3, 0.5, dist);
+
+      // Restored opacity
+      gl_FragColor = vec4(vColor, alpha); 
+    }
+  `
+};
+
 export const Starfield = memo(() => {
-  const pointsRef = useRef<THREE.Points>(null);
-  // Per-instance geometry so multiple Starfields don't share mutable buffers.
-  // createStarGeometry is defined at module scope so the linter doesn't flag
-  // its internal Math.random() calls as impure render-time code.
-  const geometry = useMemo(() => createStarGeometry(), []);
+  const shaderRef = useRef<THREE.ShaderMaterial>(null);
 
-  useFrame((_state, delta) => {
-    if (!pointsRef.current) return;
+  const { positions, colors, speeds, scales } = useMemo(() => {
+    const pos = new Float32Array(STAR_COUNT * 3);
+    const col = new Float32Array(STAR_COUNT * 3);
+    const spd = new Float32Array(STAR_COUNT);
+    const scl = new Float32Array(STAR_COUNT);
 
-    const posAttr = pointsRef.current.geometry.getAttribute('position') as THREE.BufferAttribute;
-    const positions = posAttr.array as Float32Array;
-
-    const drift = DRIFT_SPEED * delta;
+    const tempColor = new THREE.Color();
 
     for (let i = 0; i < STAR_COUNT; i++) {
-      const iz = i * 3 + 2;
-      positions[iz] -= drift;
+        // Position - Spread widely
+        pos[i * 3] = (Math.random() - 0.5) * SPREAD;     // X
+        // Y: Positioned relative to board, deeper for parallax
+        pos[i * 3 + 1] = -5.0 - Math.random() * 15.0; 
+        pos[i * 3 + 2] = (Math.random() - 0.5) * DEPTH;  // Z
 
-      // Wrap around when a star drifts out of range
-      if (positions[iz] < -SPREAD) {
-        positions[iz] += SPREAD * 2;
-        // Randomize x on wrap so the pattern doesn't repeat obviously
-        positions[i * 3] = (Math.random() - 0.5) * SPREAD * 2;
-      }
+        // Color
+        const tint = Math.random();
+        const brightness = 0.5 + Math.random() * 0.5; // Restored brightness
+        
+        if (tint < 0.15) tempColor.setHSL(0.5, 1, brightness); // Cyan
+        else if (tint < 0.25) tempColor.setHSL(0.8, 0.8, brightness); // Purple
+        else tempColor.setHSL(0.6, 0, brightness); // White
+
+        col[i * 3] = tempColor.r;
+        col[i * 3 + 1] = tempColor.g;
+        col[i * 3 + 2] = tempColor.b;
+
+        // Speed & Scale
+        spd[i] = 1.0 + Math.random() * 2.0; // Restored speed range
+        scl[i] = 0.5 + Math.random() * 1.0; 
     }
 
-    posAttr.needsUpdate = true;
+    return { positions: pos, colors: col, speeds: spd, scales: scl };
+  }, []);
+
+  useFrame(({ clock }) => {
+    if (shaderRef.current) {
+      // Restored time scale
+      shaderRef.current.uniforms.uTime.value = clock.getElapsedTime() * 0.04;
+    }
   });
 
   return (
-    <points ref={pointsRef} geometry={geometry}>
-      <pointsMaterial
-        vertexColors
-        size={1.18}
-        sizeAttenuation={false}
+    <points frustumCulled={false}>
+      <bufferGeometry>
+        <bufferAttribute
+          attach="attributes-position"
+          count={STAR_COUNT}
+          array={positions}
+          itemSize={3}
+        />
+        <bufferAttribute
+          attach="attributes-aColor"
+          count={STAR_COUNT}
+          array={colors}
+          itemSize={3}
+        />
+        <bufferAttribute
+          attach="attributes-aSpeed"
+          count={STAR_COUNT}
+          array={speeds}
+          itemSize={1}
+        />
+        <bufferAttribute
+          attach="attributes-aScale"
+          count={STAR_COUNT}
+          array={scales}
+          itemSize={1}
+        />
+      </bufferGeometry>
+      <shaderMaterial
+        ref={shaderRef}
+        args={[StarfieldShaderMaterial]}
         transparent
-        opacity={1.0}
         depthWrite={false}
+        blending={THREE.AdditiveBlending}
       />
     </points>
   );

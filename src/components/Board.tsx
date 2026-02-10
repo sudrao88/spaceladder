@@ -1,72 +1,82 @@
-import { memo, useMemo } from 'react';
+import { memo, useMemo, useRef, useLayoutEffect } from 'react';
 import { Text } from '@react-three/drei';
 import * as THREE from 'three';
 import { getBoardTiles, TILE_SIZE } from '../utils/boardUtils';
 
 const BOARD_OFFSET_Y = 0;
-
-// Shared geometries to reduce draw calls and memory usage
-const tileGeometry = new THREE.PlaneGeometry(TILE_SIZE, TILE_SIZE);
-const edgesGeometry = new THREE.EdgesGeometry(tileGeometry);
-
-// Shared materials
-const tileMaterial = new THREE.MeshStandardMaterial({ color: '#1e293b' }); // Uniform dark grey
-const borderMaterial = new THREE.LineBasicMaterial({ color: '#64748b', linewidth: 1 });
-
-interface TileProps {
-  id: number;
-  x: number;
-  z: number;
-}
-
-const Tile = memo(({ id, x, z }: TileProps) => {
-  return (
-    <group position={[x, BOARD_OFFSET_Y, z]}>
-      {/* Tile Base */}
-      <mesh 
-        geometry={tileGeometry} 
-        material={tileMaterial} 
-        rotation={[-Math.PI / 2, 0, 0]} 
-        receiveShadow 
-      />
-      
-      {/* Border */}
-      <lineSegments 
-        geometry={edgesGeometry} 
-        material={borderMaterial} 
-        position={[0, 0.005, 0]} 
-        rotation={[-Math.PI / 2, 0, 0]} 
-      />
-
-      {/* Tile Number - Text geometry is unique per number so we keep it inside */}
-      <Text
-        position={[0, 0.02, 0]} // Center
-        rotation={[-Math.PI / 2, 0, 0]}
-        fontSize={0.25}
-        color="#94a3b8"
-        anchorX="center"
-        anchorY="middle"
-      >
-        {id}
-      </Text>
-    </group>
-  );
-});
-
-Tile.displayName = 'Tile';
+const TILE_HALF = TILE_SIZE / 2;
 
 export const Board = memo(() => {
   const tiles = useMemo(() => getBoardTiles(), []);
+  const meshRef = useRef<THREE.InstancedMesh>(null);
+
+  // Set up instance matrices for the tiles
+  useLayoutEffect(() => {
+    if (meshRef.current) {
+      const tempObject = new THREE.Object3D();
+      tiles.forEach((tile, i) => {
+        tempObject.position.set(tile.x, BOARD_OFFSET_Y, tile.z);
+        tempObject.rotation.set(-Math.PI / 2, 0, 0);
+        tempObject.updateMatrix();
+        meshRef.current!.setMatrixAt(i, tempObject.matrix);
+      });
+      meshRef.current.instanceMatrix.needsUpdate = true;
+    }
+  }, [tiles]);
+
+  // Create merged geometry for borders (single draw call for all lines)
+  const borderGeometry = useMemo(() => {
+    const vertices: number[] = [];
+    const y = BOARD_OFFSET_Y + 0.005;
+
+    tiles.forEach(tile => {
+      const left = tile.x - TILE_HALF;
+      const right = tile.x + TILE_HALF;
+      const top = tile.z - TILE_HALF; 
+      const bottom = tile.z + TILE_HALF;
+
+      // 4 line segments per tile
+      // Top
+      vertices.push(left, y, top, right, y, top);
+      // Right
+      vertices.push(right, y, top, right, y, bottom);
+      // Bottom
+      vertices.push(right, y, bottom, left, y, bottom);
+      // Left
+      vertices.push(left, y, bottom, left, y, top);
+    });
+
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+    return geo;
+  }, [tiles]);
 
   return (
     <group>
+      {/* 1. Tiles (1 Draw Call) */}
+      <instancedMesh ref={meshRef} args={[undefined, undefined, tiles.length]} receiveShadow>
+        <planeGeometry args={[TILE_SIZE, TILE_SIZE]} />
+        <meshStandardMaterial color="#1e293b" />
+      </instancedMesh>
+
+      {/* 2. Borders (1 Draw Call) */}
+      <lineSegments geometry={borderGeometry}>
+        <lineBasicMaterial color="#64748b" linewidth={1} />
+      </lineSegments>
+
+      {/* 3. Numbers (Still individual, but acceptable for text) */}
       {tiles.map((tile) => (
-        <Tile
+        <Text
           key={tile.id}
-          id={tile.id}
-          x={tile.x}
-          z={tile.z}
-        />
+          position={[tile.x, BOARD_OFFSET_Y + 0.02, tile.z]}
+          rotation={[-Math.PI / 2, 0, 0]}
+          fontSize={0.25}
+          color="#94a3b8"
+          anchorX="center"
+          anchorY="middle"
+        >
+          {tile.id}
+        </Text>
       ))}
     </group>
   );
