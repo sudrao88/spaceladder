@@ -17,14 +17,23 @@ Spaceladder is an interactive, space-themed board game built with React. This do
     - `HUD`: Displays game information like the current roll, player position, and messages.
     - `Starfield`: A background component creating a sense of movement through space.
     - `WormholeDialog`: A modal for handling wormhole interactions.
+    - `CameraController`: **NEW** Handles camera movement, following players, and resetting views.
 - **State Management (`useGameStore.ts`):**
-    - `playerPosition`: The current tile number of the player.
-    - `roll`: The result of the last dice roll.
-    - `message`: Game messages displayed to the player.
-    - `actions`: Functions to manipulate the game state, such as `rollDice` and `movePlayer`.
+    - `players`: Array of player objects.
+    - `currentPlayerIndex`: Index of the current player.
+    - `gameStatus`: Current state of the game (setup, playing, finished).
+    - `cameraState`: Flags for controlling camera behavior (follow, reset, default view).
 - **Game Logic (`useGameController.ts`):**
     - Orchestrates the game flow, responding to player actions.
     - Handles dice rolls, player movement, and interactions with special tiles like wormholes.
+
+## Recent Changes (Camera Refactor & Fixes)
+
+- **New Component:** `CameraController` encapsulated in `src/components/CameraController.tsx`.
+- **Logic Improvement:** Replaced complex `useFrame` logic in `App.tsx` with a dedicated controller using frame-independent damping for smoother camera transitions.
+- **Performance:** Optimized camera updates to only run when necessary and use granular state selectors.
+- **Structure:** Moved `activeRocketRef` to `src/utils/sceneRefs.ts` to avoid circular dependencies.
+- **Fix:** Resolved camera snapping issue by managing internal state (`lastIsDefaultRef`) correctly and removing `shouldFollowPlayer` from the initialization effect dependencies.
 
 ## Deployment Plan
 

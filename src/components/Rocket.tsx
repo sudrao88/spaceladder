@@ -3,7 +3,7 @@ import { useSpring, animated } from '@react-spring/three';
 import * as THREE from 'three';
 import { useGameStore, type Player } from '../store/useGameStore';
 import { getTilePosition, PLAYER_EMOJIS } from '../utils/boardUtils';
-import { activeRocketRef } from '../App';
+import { activeRocketRef } from '../utils/sceneRefs';
 
 interface RocketProps {
   player: Player;
