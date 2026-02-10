@@ -256,7 +256,10 @@ export const useGameStore = create<GameState>()(
     {
       name: 'wormhole-warp-storage',
       partialize: (state) => ({
-          players: state.players,
+          // Strip transient animation flag so a reload never leaves a player
+          // stuck in isMoving:true (which blocks the Rocket subscription from
+          // detecting the lifting transition and freezes turn processing).
+          players: state.players.map(p => ({ ...p, isMoving: false })),
           currentPlayerIndex: state.currentPlayerIndex,
           gameStatus: state.gameStatus,
           winner: state.winner,
