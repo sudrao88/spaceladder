@@ -29,7 +29,7 @@ const createBaseMoonAssets = () => {
 
     // 1. Background
     // Color: Brighter Moon
-    colorCtx.fillStyle = '#ffffff'; 
+    colorCtx.fillStyle = '#FFFFFF'; 
     colorCtx.fillRect(0, 0, TEX_SIZE, TEX_SIZE);
     
     // Height: Mid-grey (surface level)
@@ -147,15 +147,15 @@ export const Dice = memo(({ value, isRolling }: DiceProps) => {
             cCtx.font = font;
             
             // 1. Highlight on Bottom-Right edge (far wall catching light)
-            cCtx.fillStyle = 'rgba(255, 255, 255, 0.8)'; // Stronger highlight
+            cCtx.fillStyle = 'rgba(255, 255, 255, 0.7)'; // Brighter highlight
             cCtx.fillText(text, cx + 4, cy + 4);
             
             // 2. Shadow on Top-Left edge (near wall casting shadow)
-            cCtx.fillStyle = 'rgba(0, 0, 0, 0.5)'; // Moderate shadow
+            cCtx.fillStyle = 'rgba(0, 0, 0, 0.7)'; // Darker shadow for more contrast
             cCtx.fillText(text, cx - 4, cy - 4);
 
             // 3. The floor of the carving (darker, shadowed moon dust)
-            cCtx.fillStyle = '#bbbbbb'; // Lighter floor to match brighter moon
+            cCtx.fillStyle = '#333333'; // Darker text for better contrast
             cCtx.fillText(text, cx, cy);
         }
 
@@ -216,15 +216,16 @@ export const Dice = memo(({ value, isRolling }: DiceProps) => {
     return (
         <group ref={groupRef}>
             {/* High segment count for smooth bump mapping */}
-            <Sphere args={[2.2, 128, 128]}>
+            <Sphere args={[2.2, 64, 64]}>
                 {textures && (
                     <meshStandardMaterial 
                         map={textures.colorMap}
                         bumpMap={textures.bumpMap}
                         bumpScale={0.15} // Depth of the carve
-                        roughness={0.6} // Reduced roughness for shinier moon
-                        metalness={0.1}
-                        emissive="#1a1a1a" // Subtle self-illumination to make it pop
+                        roughness={0.4} // Reduced roughness for a whiter, shinier look
+                        metalness={0.0}
+                        emissive="white"
+                        emissiveIntensity={0.2} // Increased intensity for a brighter feel
                     />
                 )}
             </Sphere>
