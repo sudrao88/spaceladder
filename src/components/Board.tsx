@@ -2,49 +2,59 @@ import { memo, useMemo, useEffect, useRef } from 'react';
 import { getCachedBoardTiles, TILE_SIZE } from '../utils/boardUtils';
 import * as THREE from 'three';
 
+// Board configuration constants
+const TILES_PER_ROW = 10;
+const TILE_COUNT = TILES_PER_ROW * TILES_PER_ROW;
+const ATLAS_RESOLUTION_PER_TILE = 128;
+const ATLAS_UV_SCALE = 1 / TILES_PER_ROW; // 0.1 for 10x10 grid
+
+// Visual styling constants
+const TILE_BG_COLOR = '#1e293b';
+const TILE_BORDER_COLOR = '#475569';
+const TILE_TEXT_COLOR = '#94a3b8';
+const TILE_BORDER_WIDTH = 2;
+const TILE_TEXT_SIZE_RATIO = 0.3;
+
 const TILE_ROTATION = -Math.PI / 2;
+
+// Create geometry once and reuse across all renders
+const tileGeometry = new THREE.PlaneGeometry(TILE_SIZE, TILE_SIZE);
 
 // Create a texture atlas with all 100 tile numbers and edges
 const createTileAtlas = (): THREE.CanvasTexture => {
     const canvas = document.createElement('canvas');
-    const tilesPerRow = 10;
-    const tileResolution = 128; // pixels per tile in atlas
-    canvas.width = tilesPerRow * tileResolution;
-    canvas.height = tilesPerRow * tileResolution;
+    canvas.width = TILES_PER_ROW * ATLAS_RESOLUTION_PER_TILE;
+    canvas.height = TILES_PER_ROW * ATLAS_RESOLUTION_PER_TILE;
 
     const ctx = canvas.getContext('2d');
     if (!ctx) throw new Error('Could not get 2D context');
 
-    // Fill with background color
-    ctx.fillStyle = '#1e293b';
+    // Fill entire atlas with background color once
+    ctx.fillStyle = TILE_BG_COLOR;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     // Draw each tile
-    for (let i = 0; i < 100; i++) {
+    for (let i = 0; i < TILE_COUNT; i++) {
         const tileId = i + 1;
-        const atlasCol = i % tilesPerRow;
-        const atlasRow = Math.floor(i / tilesPerRow);
-        const x = atlasCol * tileResolution;
-        const y = atlasRow * tileResolution;
-
-        // Draw tile background
-        ctx.fillStyle = '#1e293b';
-        ctx.fillRect(x, y, tileResolution, tileResolution);
+        const atlasCol = i % TILES_PER_ROW;
+        const atlasRow = Math.floor(i / TILES_PER_ROW);
+        const x = atlasCol * ATLAS_RESOLUTION_PER_TILE;
+        const y = atlasRow * ATLAS_RESOLUTION_PER_TILE;
 
         // Draw edges
-        ctx.strokeStyle = '#475569';
-        ctx.lineWidth = 2;
-        ctx.strokeRect(x + 1, y + 1, tileResolution - 2, tileResolution - 2);
+        ctx.strokeStyle = TILE_BORDER_COLOR;
+        ctx.lineWidth = TILE_BORDER_WIDTH;
+        ctx.strokeRect(x + 1, y + 1, ATLAS_RESOLUTION_PER_TILE - 2, ATLAS_RESOLUTION_PER_TILE - 2);
 
         // Draw tile number
-        ctx.fillStyle = '#94a3b8';
-        ctx.font = `bold ${tileResolution * 0.3}px sans-serif`;
+        ctx.fillStyle = TILE_TEXT_COLOR;
+        ctx.font = `bold ${ATLAS_RESOLUTION_PER_TILE * TILE_TEXT_SIZE_RATIO}px sans-serif`;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillText(
             tileId.toString(),
-            x + tileResolution / 2,
-            y + tileResolution / 2
+            x + ATLAS_RESOLUTION_PER_TILE / 2,
+            y + ATLAS_RESOLUTION_PER_TILE / 2
         );
     }
 
@@ -67,11 +77,11 @@ export const Board = memo(() => {
             matrix.makeRotationX(TILE_ROTATION);
             matrix.setPosition(tile.x, 0, tile.z);
 
-            // Calculate UV offset for this tile in the atlas (10x10 grid)
-            const atlasCol = (tile.id - 1) % 10;
-            const atlasRow = Math.floor((tile.id - 1) / 10);
-            const uvOffsetX = atlasCol / 10;
-            const uvOffsetY = atlasRow / 10;
+            // Calculate UV offset for this tile in the atlas
+            const atlasCol = (tile.id - 1) % TILES_PER_ROW;
+            const atlasRow = Math.floor((tile.id - 1) / TILES_PER_ROW);
+            const uvOffsetX = atlasCol * ATLAS_UV_SCALE;
+            const uvOffsetY = atlasRow * ATLAS_UV_SCALE;
 
             return { matrix, uvOffset: new THREE.Vector2(uvOffsetX, uvOffsetY) };
         });
@@ -92,7 +102,7 @@ export const Board = memo(() => {
         mesh.instanceMatrix.needsUpdate = true;
 
         // Set up instanced attributes for UV offsets
-        const uvOffsets = new Float32Array(100 * 2);
+        const uvOffsets = new Float32Array(instancedData.length * 2);
         instancedData.forEach((data, i) => {
             uvOffsets[i * 2] = data.uvOffset.x;
             uvOffsets[i * 2 + 1] = data.uvOffset.y;
@@ -107,14 +117,16 @@ export const Board = memo(() => {
         return new THREE.ShaderMaterial({
             uniforms: {
                 map: { value: texture },
+                atlasUvScale: { value: ATLAS_UV_SCALE },
             },
             vertexShader: `
+                uniform float atlasUvScale;
                 attribute vec2 uvOffset;
                 varying vec2 vUv;
 
                 void main() {
-                    // Map UV to the correct tile in the 10x10 atlas
-                    vUv = uvOffset + uv * 0.1; // 0.1 = 1/10 (10 tiles per row/column)
+                    // Map UV to the correct tile in the atlas
+                    vUv = uvOffset + uv * atlasUvScale;
                     gl_Position = projectionMatrix * modelViewMatrix * instanceMatrix * vec4(position, 1.0);
                 }
             `,
@@ -130,9 +142,7 @@ export const Board = memo(() => {
     }, [texture]);
 
     return (
-        <instancedMesh ref={meshRef} args={[undefined, undefined, 100]} material={material}>
-            <planeGeometry args={[TILE_SIZE, TILE_SIZE]} />
-        </instancedMesh>
+        <instancedMesh ref={meshRef} args={[tileGeometry, material, TILE_COUNT]} />
     );
 });
 
