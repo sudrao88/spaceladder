@@ -98,8 +98,17 @@ export const useGameStore = create<GameState>()(
       },
 
       rollDice: () => {
-        const { isRolling, gameStatus } = get();
-        if (isRolling || gameStatus !== 'playing') return;
+        const { isRolling, gameStatus, players, pendingWormhole } = get();
+        
+        // Prevent roll if:
+        // 1. Already rolling
+        // 2. Game is not in 'playing' state
+        // 3. Any player is currently moving
+        // 4. There is a pending wormhole teleportation
+        const isAnyPlayerMoving = players.some(p => p.isMoving);
+        if (isRolling || gameStatus !== 'playing' || isAnyPlayerMoving || pendingWormhole) {
+            return;
+        }
 
         (async () => {
           set({ isRolling: true, diceValue: null });
@@ -115,8 +124,8 @@ export const useGameStore = create<GameState>()(
           // Wait a bit AFTER the dice stops and shows the value before moving the player
           await delay(800);
           
-          const { players, currentPlayerIndex } = get();
-          const currentPlayer = players[currentPlayerIndex];
+          const { players: updatedPlayers, currentPlayerIndex } = get();
+          const currentPlayer = updatedPlayers[currentPlayerIndex];
           
           if (currentPlayer) {
             // Trigger movement
