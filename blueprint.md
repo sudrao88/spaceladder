@@ -27,17 +27,19 @@ Spaceladder is an interactive, space-themed board game built with React. This do
     - Orchestrates the game flow, responding to player actions.
     - Handles dice rolls, player movement, and interactions with special tiles like wormholes.
 
-## Recent Changes (Camera Refactor & Fixes)
+## Recent Changes (Performance Optimizations)
 
-- **New Component:** `CameraController` encapsulated in `src/components/CameraController.tsx`.
-- **Logic Improvement:** Replaced complex `useFrame` logic in `App.tsx` with a dedicated controller using frame-independent damping for smoother camera transitions.
-- **Performance:** Optimized camera updates to only run when necessary and use granular state selectors. Replaced polling `setInterval` with event-driven `onChange` for camera state detection.
-- **Structure:** Moved `activeRocketRef` to `src/utils/sceneRefs.ts` to avoid circular dependencies.
-- **Fixes:** 
-    - Resolved camera snapping issue by managing internal state (`lastIsDefaultRef`) correctly.
-    - Enabled correct damping for manual camera movement by ensuring `controls.update()` is called every frame.
-- **Revert:** Reverted the `Board` component from a complex instanced mesh with shaders back to a standard component-based mapping for stability and maintainability.
-- **Update:** Centered the tile numbers within each board tile and made all tiles a uniform dark grey color.
+- **Starfield Optimization:**
+    - Replaced CPU-bound particle system with a GPU-accelerated custom `shaderMaterial`.
+    - Increased star count to 3000 for a denser field.
+    - Widened star spread (200x100) to cover the camera view fully.
+    - Tuned star size to 6.0 and drift speed to 0.05 for a subtle, deep space effect.
+    - Disabled frustum culling to prevent edge popping.
+- **Board Optimization:**
+    - Implemented `InstancedMesh` for the 100 board tiles, reducing draw calls from 100 to 1.
+    - Merged border geometries into a single `LineSegments` object, reducing border draw calls from 100 to 1.
+- **Rocket Optimization:**
+    - Added global texture caching for emoji textures to prevent expensive canvas regeneration on re-renders.
 
 ## Deployment Plan
 

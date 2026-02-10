@@ -12,7 +12,7 @@ const StarfieldShaderMaterial = {
   uniforms: {
     uTime: { value: 0 },
     uColor: { value: new THREE.Color('#ffffff') },
-    uSize: { value: 6.0 }, // Restored visibility size
+    uSize: { value: 6.0 }, // Reduced size as requested
   },
   vertexShader: `
     uniform float uTime;
@@ -98,8 +98,8 @@ export const Starfield = memo(() => {
 
   useFrame(({ clock }) => {
     if (shaderRef.current) {
-      // Restored time scale
-      shaderRef.current.uniforms.uTime.value = clock.getElapsedTime() * 0.04;
+      // Reduced speed factor to 0.05
+      shaderRef.current.uniforms.uTime.value = clock.getElapsedTime() * 0.05;
     }
   });
 
@@ -109,26 +109,22 @@ export const Starfield = memo(() => {
         <bufferAttribute
           attach="attributes-position"
           count={STAR_COUNT}
-          array={positions}
-          itemSize={3}
+          args={[positions, 3]}
         />
         <bufferAttribute
           attach="attributes-aColor"
           count={STAR_COUNT}
-          array={colors}
-          itemSize={3}
+          args={[colors, 3]}
         />
         <bufferAttribute
           attach="attributes-aSpeed"
           count={STAR_COUNT}
-          array={speeds}
-          itemSize={1}
+          args={[speeds, 1]}
         />
         <bufferAttribute
           attach="attributes-aScale"
           count={STAR_COUNT}
-          array={scales}
-          itemSize={1}
+          args={[scales, 1]}
         />
       </bufferGeometry>
       <shaderMaterial
