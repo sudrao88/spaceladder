@@ -41,27 +41,11 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2,woff,webmanifest}'],
-        // Ensure the SW pre-caches all static assets on install
         cleanupOutdatedCaches: true,
         clientsClaim: true,
         skipWaiting: true,
-        // Runtime caching for any dynamic assets or fonts
-        runtimeCaching: [
-          {
-            urlPattern: /^https:\/\/fonts\.(googleapis|gstatic)\.com\/.*/i,
-            handler: 'CacheFirst',
-            options: {
-              cacheName: 'google-fonts',
-              expiration: {
-                maxEntries: 10,
-                maxAgeSeconds: 60 * 60 * 24 * 365 // 1 year
-              },
-              cacheableResponse: {
-                statuses: [0, 200]
-              }
-            }
-          }
-        ]
+        navigateFallback: 'index.html',
+        navigateFallbackDenylist: [/^\/api/]
       }
     })
   ],
