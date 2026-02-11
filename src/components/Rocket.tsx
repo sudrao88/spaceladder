@@ -11,8 +11,8 @@ interface RocketProps {
 }
 
 const ROCKET_ROTATION: [number, number, number] = [-Math.PI / 2, 0, 0];
-const SPRING_CONFIG = { mass: 1, tension: 120, friction: 30 };
-const SCALE_SPRING_CONFIG = { mass: 1, tension: 200, friction: 25 };
+const SPRING_CONFIG = { mass: 0.6, tension: 280, friction: 22 };
+const SCALE_SPRING_CONFIG = { mass: 0.5, tension: 380, friction: 20 };
 const LIFTED_SCALE = 1.5; 
 const LANDED_SCALE = 1.0;
 
