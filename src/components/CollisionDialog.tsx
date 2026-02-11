@@ -24,7 +24,7 @@ export const CollisionDialog = memo(() => {
   const players = useGameStore(selectPlayers);
   const playerInitials = useGameStore(selectPlayerInitials);
   const [isEjecting, setIsEjecting] = useState(false);
-  const focusTrapRef = useFocusTrap<HTMLDivElement>();
+  const focusTrapRef = useFocusTrap<HTMLDivElement>([isEjecting]);
 
   const message = useMemo(() => {
     if (!pendingCollision) return '';

@@ -137,7 +137,7 @@ export const WormholeDialog = memo(() => {
   const executeTeleport = useGameStore(selectExecuteTeleport);
   const players = useGameStore(selectPlayers);
   const [isWarping, setIsWarping] = useState(false);
-  const focusTrapRef = useFocusTrap<HTMLDivElement>();
+  const focusTrapRef = useFocusTrap<HTMLDivElement>([isWarping]);
 
   // Pick a message and theme deterministically from the wormhole data
   const wormholeType = pendingWormhole?.wormholeType ?? (pendingWormhole?.isBoost ? 'boost' : 'glitch');

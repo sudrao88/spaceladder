@@ -1,4 +1,4 @@
-import { memo, Suspense, useCallback, useRef } from 'react';
+import { memo, Suspense, useRef } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrthographicCamera, View } from '@react-three/drei';
 import { Board } from './components/Board';
@@ -27,13 +27,6 @@ const GameScene = memo(() => {
   const players = useGameStore(selectPlayers);
   const { handleMovementComplete } = GameController();
 
-  // Stable callback factory: avoids creating a new function ref on every render
-  // so that Rocket's memo() is not invalidated.
-  const onComplete = useCallback(
-    (playerId: number) => handleMovementComplete(playerId),
-    [handleMovementComplete],
-  );
-
   return (
     <>
       <Board />
@@ -41,7 +34,7 @@ const GameScene = memo(() => {
         <Rocket
           key={player.id}
           player={player}
-          onMovementComplete={onComplete}
+          onMovementComplete={handleMovementComplete}
         />
       ))}
     </>
