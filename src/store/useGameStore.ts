@@ -254,6 +254,7 @@ export const useGameStore = create<GameState>()(
         // Calculate loser destination: back 5 spaces, minimum tile 2
         const collisionTile = player.position;
         const RETREAT_MIN = 2;
+        const RETREAT_MAX = 99;
         let destination = Math.max(collisionTile - 5, RETREAT_MIN);
 
         // Positions occupied by players other than the loser
@@ -267,7 +268,7 @@ export const useGameStore = create<GameState>()(
             // Can't go further back — switch to forward search
             destination = Math.max(collisionTile - 5, RETREAT_MIN) + 1;
             // Walk forward, but skip the collision tile (winner is there)
-            while (destination < 100 && (occupiedPositions.has(destination) || destination === collisionTile)) {
+            while (destination <= RETREAT_MAX && (occupiedPositions.has(destination) || destination === collisionTile)) {
               destination++;
             }
             break;
