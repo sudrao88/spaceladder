@@ -262,17 +262,17 @@ export const useGameStore = create<GameState>()(
         );
 
         // Walk backward to find an empty tile, but never below tile 2
-        while (destination > RETREAT_MIN && occupiedPositions.has(destination)) {
-          destination--;
-        }
-
-        // If backward search is still blocked, walk forward from the
-        // original target to find the nearest empty tile (skip collision tile)
-        if (occupiedPositions.has(destination)) {
-          destination = Math.max(collisionTile - 5, RETREAT_MIN);
-          while (destination < collisionTile && occupiedPositions.has(destination)) {
-            destination++;
+        while (destination >= RETREAT_MIN && occupiedPositions.has(destination)) {
+          if (destination === RETREAT_MIN) {
+            // Can't go further back — switch to forward search
+            destination = Math.max(collisionTile - 5, RETREAT_MIN) + 1;
+            // Walk forward, but skip the collision tile (winner is there)
+            while (destination < 100 && (occupiedPositions.has(destination) || destination === collisionTile)) {
+              destination++;
+            }
+            break;
           }
+          destination--;
         }
 
         set({
