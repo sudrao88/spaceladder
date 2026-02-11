@@ -1,5 +1,40 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { hasServiceWorkerUpdate, checkForServiceWorkerUpdate } from '../utils/swUpdateManager';
+
+const APP_VERSION_KEY = 'wormhole-warp-version';
+const STORAGE_KEY = 'wormhole-warp-storage';
+
+/**
+ * Called at the start of every new game. If a newer build has been deployed
+ * (detected via service-worker update or a changed build-time version stamp),
+ * clears persisted state and reloads the page so the user gets the latest code.
+ * Returns `true` if a reload was triggered (caller should bail out).
+ */
+function reloadIfNewVersionAvailable(): boolean {
+  const storedVersion = localStorage.getItem(APP_VERSION_KEY);
+
+  // If the SW layer has detected a newer deployment, reload immediately.
+  if (hasServiceWorkerUpdate()) {
+    localStorage.removeItem(STORAGE_KEY);
+    localStorage.setItem(APP_VERSION_KEY, __APP_VERSION__);
+    window.location.reload();
+    return true;
+  }
+
+  // If this is the first visit or the stored version differs from the
+  // running code, persist the current version. No reload needed because
+  // the running code is already the latest (e.g. user hard-refreshed).
+  if (storedVersion !== __APP_VERSION__) {
+    localStorage.setItem(APP_VERSION_KEY, __APP_VERSION__);
+  }
+
+  // Kick off a background SW update check so the *next* new-game start
+  // can detect any deployment that happened while this session was active.
+  checkForServiceWorkerUpdate();
+
+  return false;
+}
 
 export type PlayerColor = 'red' | 'blue' | 'green' | 'yellow';
 
@@ -99,6 +134,10 @@ export const useGameStore = create<GameState>()(
       cameraFollowEnabled: true,
 
       setupGame: (playerCount) => {
+        // Check for app updates on every new game start.
+        // If a reload is triggered, bail out — the page will reload with fresh code.
+        if (reloadIfNewVersionAvailable()) return;
+
         const colors: PlayerColor[] = ['red', 'blue', 'green', 'yellow'];
         const newPlayers: Player[] = Array.from({ length: playerCount }, (_, i) => ({
           id: i,
@@ -387,7 +426,7 @@ export const useGameStore = create<GameState>()(
       },
     }),
     {
-      name: 'wormhole-warp-storage',
+      name: STORAGE_KEY,
       partialize: (state) => ({
           // Strip transient animation flag so a reload never leaves a player
           // stuck in isMoving:true (which blocks the Rocket subscription from

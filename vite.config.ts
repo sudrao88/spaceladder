@@ -4,6 +4,9 @@ import { VitePWA } from 'vite-plugin-pwa'
 
 // https://vitejs.dev/config/
 export default defineConfig({
+  define: {
+    '__APP_VERSION__': JSON.stringify(Date.now().toString()),
+  },
   plugins: [
     react(),
     VitePWA({
