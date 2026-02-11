@@ -17,18 +17,29 @@ Spaceladder is an interactive, space-themed board game built with React. This do
     - `HUD`: Displays game information like the current roll, player position, and messages.
     - `Starfield`: A background component creating a sense of movement through space.
     - `WormholeDialog`: A modal for handling wormhole interactions.
-    - `CameraController`: **NEW** Handles camera movement, following players, and resetting views.
+    - `CollisionDialog`: **NEW** A modal handling interactions when two players land on the same tile.
+    - `CameraController`: Handles camera movement, following players, and resetting views.
 - **State Management (`useGameStore.ts`):**
     - `players`: Array of player objects.
     - `currentPlayerIndex`: Index of the current player.
     - `gameStatus`: Current state of the game (setup, playing, finished).
     - `cameraState`: Flags for controlling camera behavior (follow, reset, default view).
+    - `pendingCollision`: **NEW** State for tracking active collisions between players.
 - **Game Logic (`useGameController.ts`):**
     - Orchestrates the game flow, responding to player actions.
     - Handles dice rolls, player movement, and interactions with special tiles like wormholes.
+    - Handles player-to-player collisions.
 
-## Recent Changes (Performance Optimizations)
+## Recent Changes
 
+### Collision System & UI Fixes
+- **Collision Handling:** Added a `CollisionDialog` to manage what happens when two players end up on the same tile. One player "holds position" while the other is "ejected" back to a previous tile.
+- **Mobile UI Fixes:**
+    - Updated `CollisionDialog` to handle small vertical screens.
+    - Added `max-h-[90vh]` and `overflow-y-auto` to ensure the "Eject!" button is always accessible.
+    - Styled with custom scrollbars and backdrop blur for a premium feel.
+
+### Performance Optimizations
 - **Starfield Optimization:**
     - Replaced CPU-bound particle system with a GPU-accelerated custom `shaderMaterial`.
     - Increased star count to 3000 for a denser field.

@@ -70,7 +70,7 @@ export const CollisionDialog = memo(() => {
       {isVisible && (
         <motion.div
           key="collision-overlay"
-          className="absolute inset-0 z-50 flex items-center justify-center pointer-events-auto"
+          className="absolute inset-0 z-50 flex items-center justify-center pointer-events-auto p-4"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
@@ -81,7 +81,7 @@ export const CollisionDialog = memo(() => {
 
           {/* Dialog card */}
           <motion.div
-            className="relative z-10 flex flex-col items-center max-w-sm w-[90%] overflow-hidden rounded-2xl border shadow-2xl"
+            className="relative z-10 flex flex-col items-center max-w-sm w-full max-h-[90vh] overflow-hidden rounded-2xl border shadow-2xl"
             style={{
               borderColor: 'rgba(251,146,60,0.5)',
               background: 'radial-gradient(ellipse at center, #1c1917 0%, #0c0a09 100%)',
@@ -92,129 +92,131 @@ export const CollisionDialog = memo(() => {
             exit={{ scale: 0.8, opacity: 0, y: -30 }}
             transition={{ type: 'spring', damping: 20, stiffness: 300 }}
           >
-            <AnimatePresence mode="wait">
-              {!isEjecting && (
-                <motion.div
-                  key="collision-prompt"
-                  className="flex flex-col items-center p-6 w-full"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0, scale: 0.9 }}
-                  transition={{ duration: 0.2 }}
-                >
-                  {/* Impact icon with pulsing ring */}
-                  <div className="relative mb-4">
-                    <div
-                      className="collision-ring"
-                    />
-                    <span className="text-5xl relative z-10 block" role="img" aria-label="collision">
-                      💥
-                    </span>
-                  </div>
-
-                  <h2 className="text-xl font-bold text-center mb-1 text-orange-400">
-                    Space Collision!
-                  </h2>
-
-                  <p className="text-gray-300 text-sm text-center mb-2 leading-snug">
-                    {message}
-                  </p>
-
-                  {/* Show the two colliding players */}
-                  <div className="flex items-center justify-center gap-4 mb-2">
-                    <div className="flex flex-col items-center">
-                      <span className="text-3xl">{winnerEmoji}</span>
-                      <span className="text-xs font-mono mt-1" style={{ color: winner?.color }}>{winnerLabel}</span>
+            <div className="w-full overflow-y-auto custom-scrollbar">
+              <AnimatePresence mode="wait">
+                {!isEjecting && (
+                  <motion.div
+                    key="collision-prompt"
+                    className="flex flex-col items-center p-6 w-full"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0, scale: 0.9 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    {/* Impact icon with pulsing ring */}
+                    <div className="relative mb-4">
+                      <div
+                        className="collision-ring"
+                      />
+                      <span className="text-5xl relative z-10 block" role="img" aria-label="collision">
+                        💥
+                      </span>
                     </div>
-                    <span className="text-2xl text-orange-400">⚡</span>
-                    <div className="flex flex-col items-center">
-                      <span className="text-3xl">{loserEmoji}</span>
-                      <span className="text-xs font-mono mt-1" style={{ color: loser?.color }}>{loserLabel}</span>
+
+                    <h2 className="text-xl font-bold text-center mb-1 text-orange-400">
+                      Space Collision!
+                    </h2>
+
+                    <p className="text-gray-300 text-sm text-center mb-2 leading-snug">
+                      {message}
+                    </p>
+
+                    {/* Show the two colliding players */}
+                    <div className="flex items-center justify-center gap-4 mb-2">
+                      <div className="flex flex-col items-center">
+                        <span className="text-3xl">{winnerEmoji}</span>
+                        <span className="text-xs font-mono mt-1" style={{ color: winner?.color }}>{winnerLabel}</span>
+                      </div>
+                      <span className="text-2xl text-orange-400">⚡</span>
+                      <div className="flex flex-col items-center">
+                        <span className="text-3xl">{loserEmoji}</span>
+                        <span className="text-xs font-mono mt-1" style={{ color: loser?.color }}>{loserLabel}</span>
+                      </div>
                     </div>
-                  </div>
 
-                  <p className="text-gray-400 text-xs text-center mb-1 font-mono">
-                    Tile {collisionTile}
-                  </p>
-
-                  {/* Outcome */}
-                  <div className="bg-black/40 rounded-lg px-4 py-2 mb-3 border border-orange-500/20">
-                    <p className="text-orange-300 text-sm text-center">
-                      {winnerEmoji} <span style={{ color: winner?.color }} className="font-bold">{winnerLabel}</span> holds position!
+                    <p className="text-gray-400 text-xs text-center mb-1 font-mono">
+                      Tile {collisionTile}
                     </p>
-                    <p className="text-orange-300 text-sm text-center">
-                      {loserEmoji} <span style={{ color: loser?.color }} className="font-bold">{loserLabel}</span> retreats to Tile {loserDestination}
-                    </p>
-                  </div>
 
-                  <button
-                    onClick={handleEject}
-                    className="group relative px-8 py-3 rounded-xl font-bold text-white text-base transition-all active:scale-95"
-                    style={{
-                      background: 'linear-gradient(135deg, #c2410c, #ea580c, #fb923c)',
-                      boxShadow: '0 0 20px rgba(251,146,60,0.5)',
-                    }}
-                  >
-                    <span className="relative z-10">Eject!</span>
-                    <div
-                      className="absolute inset-0 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity"
-                      style={{ boxShadow: '0 0 30px rgba(251,146,60,0.8), inset 0 0 30px rgba(251,146,60,0.15)' }}
-                    />
-                  </button>
-                </motion.div>
-              )}
+                    {/* Outcome */}
+                    <div className="bg-black/40 rounded-lg px-4 py-2 mb-3 border border-orange-500/20 w-full">
+                      <p className="text-orange-300 text-sm text-center">
+                        {winnerEmoji} <span style={{ color: winner?.color }} className="font-bold">{winnerLabel}</span> holds position!
+                      </p>
+                      <p className="text-orange-300 text-sm text-center">
+                        {loserEmoji} <span style={{ color: loser?.color }} className="font-bold">{loserLabel}</span> retreats to Tile {loserDestination}
+                      </p>
+                    </div>
 
-              {/* Ejection animation phase */}
-              {isEjecting && (
-                <motion.div
-                  key="ejecting"
-                  className="flex flex-col items-center justify-center p-6 w-full h-[250px] relative overflow-hidden"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 0.15 }}
-                >
-                  {/* Winner stays centered */}
-                  <motion.span
-                    className="text-5xl relative z-10"
-                    role="img"
-                    aria-label="winner stays"
-                    initial={{ scale: 1 }}
-                    animate={{ scale: [1, 1.2, 1] }}
-                    transition={{ duration: 0.6 }}
-                  >
-                    {winnerEmoji}
-                  </motion.span>
+                    <button
+                      onClick={handleEject}
+                      className="group relative px-8 py-3 rounded-xl font-bold text-white text-base transition-all active:scale-95"
+                      style={{
+                        background: 'linear-gradient(135deg, #c2410c, #ea580c, #fb923c)',
+                        boxShadow: '0 0 20px rgba(251,146,60,0.5)',
+                      }}
+                    >
+                      <span className="relative z-10">Eject!</span>
+                      <div
+                        className="absolute inset-0 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity"
+                        style={{ boxShadow: '0 0 30px rgba(251,146,60,0.8), inset 0 0 30px rgba(251,146,60,0.15)' }}
+                      />
+                    </button>
+                  </motion.div>
+                )}
 
-                  {/* Loser gets ejected */}
-                  <motion.span
-                    className="text-4xl absolute z-10"
-                    role="img"
-                    aria-label="loser ejected"
-                    initial={{ x: 0, y: 0, opacity: 1, scale: 1 }}
-                    animate={{
-                      x: [0, -20, -150],
-                      y: [0, -30, 80],
-                      opacity: [1, 1, 0],
-                      scale: [1, 0.8, 0.3],
-                      rotate: [0, -30, -180],
-                    }}
-                    transition={{ duration: 0.8, ease: 'easeIn' }}
+                {/* Ejection animation phase */}
+                {isEjecting && (
+                  <motion.div
+                    key="ejecting"
+                    className="flex flex-col items-center justify-center p-6 w-full h-[250px] relative overflow-hidden"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.15 }}
                   >
-                    {loserEmoji}
-                  </motion.span>
+                    {/* Winner stays centered */}
+                    <motion.span
+                      className="text-5xl relative z-10"
+                      role="img"
+                      aria-label="winner stays"
+                      initial={{ scale: 1 }}
+                      animate={{ scale: [1, 1.2, 1] }}
+                      transition={{ duration: 0.6 }}
+                    >
+                      {winnerEmoji}
+                    </motion.span>
 
-                  <motion.p
-                    className="absolute bottom-5 text-sm font-bold tracking-widest uppercase text-orange-400"
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: [0, 1, 1, 0], y: [10, 0, 0, -10] }}
-                    transition={{ duration: 0.8, times: [0, 0.15, 0.7, 1] }}
-                  >
-                    Ejecting...
-                  </motion.p>
-                </motion.div>
-              )}
-            </AnimatePresence>
+                    {/* Loser gets ejected */}
+                    <motion.span
+                      className="text-4xl absolute z-10"
+                      role="img"
+                      aria-label="loser ejected"
+                      initial={{ x: 0, y: 0, opacity: 1, scale: 1 }}
+                      animate={{
+                        x: [0, -20, -150],
+                        y: [0, -30, 80],
+                        opacity: [1, 1, 0],
+                        scale: [1, 0.8, 0.3],
+                        rotate: [0, -30, -180],
+                      }}
+                      transition={{ duration: 0.8, ease: 'easeIn' }}
+                    >
+                      {loserEmoji}
+                    </motion.span>
+
+                    <motion.p
+                      className="absolute bottom-5 text-sm font-bold tracking-widest uppercase text-orange-400"
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: [0, 1, 1, 0], y: [10, 0, 0, -10] }}
+                      transition={{ duration: 0.8, times: [0, 0.15, 0.7, 1] }}
+                    >
+                      Ejecting...
+                    </motion.p>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
           </motion.div>
         </motion.div>
       )}
