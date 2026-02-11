@@ -1,6 +1,4 @@
 import { memo, useState, useRef, useEffect, useCallback } from 'react';
-import { Canvas } from '@react-three/fiber';
-import { Dice } from './Dice';
 import { WormholeDialog } from './WormholeDialog';
 import { CollisionDialog } from './CollisionDialog';
 import { PlayerInitials } from './PlayerInitials';
@@ -12,7 +10,6 @@ import { PLAYER_EMOJIS } from '../utils/boardUtils';
 const selectGameStatus = (s: ReturnType<typeof useGameStore.getState>) => s.gameStatus;
 const selectPlayers = (s: ReturnType<typeof useGameStore.getState>) => s.players;
 const selectCurrentPlayerIndex = (s: ReturnType<typeof useGameStore.getState>) => s.currentPlayerIndex;
-const selectDiceValue = (s: ReturnType<typeof useGameStore.getState>) => s.diceValue;
 const selectIsRolling = (s: ReturnType<typeof useGameStore.getState>) => s.isRolling;
 const selectWinner = (s: ReturnType<typeof useGameStore.getState>) => s.winner;
 const selectSetupGame = (s: ReturnType<typeof useGameStore.getState>) => s.setupGame;
@@ -34,10 +31,11 @@ const SetupScreen = memo(() => {
       <h1 className="text-6xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-purple-600 mb-8 neon-text">
         WORMHOLE WARP
       </h1>
-      <div className="flex gap-4">
-        {[2, 3, 4].map(num => (
+      <div className="flex gap-4" role="group" aria-label="Select number of players">
+        {[2, 3, 4].map((num, i) => (
           <button
             key={num}
+            autoFocus={i === 0}
             onClick={() => setupGame(num)}
             className="px-8 py-4 bg-gray-800 hover:bg-cyan-900 border border-cyan-500 rounded-lg text-xl font-bold transition-all shadow-[0_0_15px_rgba(6,182,212,0.5)] hover:shadow-[0_0_25px_rgba(6,182,212,0.8)]"
           >
@@ -67,6 +65,7 @@ const FinishedScreen = memo(() => {
           {winnerEmoji} <span style={{ color: winner?.color }}>{winnerLabel}</span> Wins!
       </h2>
       <button
+        autoFocus
         onClick={resetGame}
         className="px-6 py-3 bg-purple-600 hover:bg-purple-500 rounded text-white font-bold"
       >
@@ -127,34 +126,35 @@ const PlayerList = memo(({ currentPlayerIndex }: PlayerListProps) => {
 
 PlayerList.displayName = 'PlayerList';
 
+/**
+ * Click overlay for the dice. The 3D dice is rendered via DiceView in the
+ * main Canvas (single WebGL context). This component just provides an
+ * accessible click/keyboard target that sits on top of the dice tracking div.
+ */
 const DicePanel = memo(() => {
-  const diceValue = useGameStore(selectDiceValue);
   const isRolling = useGameStore(selectIsRolling);
   const rollDice = useGameStore(selectRollDice);
-  
+
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if ((e.key === 'Enter' || e.key === ' ') && !isRolling) {
+      e.preventDefault();
+      rollDice();
+    }
+  }, [isRolling, rollDice]);
+
   return (
     <div className="absolute bottom-12 right-12 flex flex-col items-center pointer-events-none">
-       {/* 
-          Dice Panel:
-          - Bottom right corner
-          - Clickable moon to roll
-          - Label "ROLL" is now on the moon itself (in Dice.tsx)
-          - Increased padding from edges by changing from bottom-6 right-6 to bottom-12 right-12
-       */}
       <div className="pointer-events-auto flex flex-col items-center">
-        <div 
-            className="h-24 w-24 bg-transparent relative cursor-pointer hover:scale-110 transition-transform duration-300"
-            onClick={!isRolling ? rollDice : undefined}
-            title="Tap to Roll"
-        >
-          <Canvas camera={{ position: [0, 0, 6], fov: 45 }}>
-            <ambientLight intensity={0.5} />
-            <pointLight position={[5, 5, 5]} intensity={1} />
-            <pointLight position={[-5, -5, -5]} intensity={0.5} />
-            {/* Removed onClick prop from Dice, handled by parent div */}
-            <Dice value={diceValue} isRolling={isRolling} />
-          </Canvas>
-        </div>
+        <div
+          role="button"
+          tabIndex={0}
+          aria-label={isRolling ? 'Rolling dice...' : 'Roll dice'}
+          aria-disabled={isRolling}
+          className="h-24 w-24 bg-transparent relative cursor-pointer hover:scale-110 transition-transform duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400 rounded-full"
+          onClick={!isRolling ? rollDice : undefined}
+          onKeyDown={handleKeyDown}
+          title="Tap to Roll"
+        />
       </div>
     </div>
   );

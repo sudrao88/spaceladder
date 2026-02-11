@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { secureRandom } from '../utils/random';
 
 export type PlayerColor = 'red' | 'blue' | 'green' | 'yellow';
 
@@ -79,6 +80,11 @@ interface GameState {
 
 const POST_TELEPORT_DELAY_MS = 800;
 
+// Monotonically increasing turn ID used to detect stale async closures.
+// When resetGame() fires, this bumps so any in-flight rollDice() IIFE can
+// detect that its turn was invalidated and bail out.
+let turnEpoch = 0;
+
 export const useGameStore = create<GameState>()(
   persist(
     (set, get) => ({
@@ -124,7 +130,12 @@ export const useGameStore = create<GameState>()(
       finalizeSetup: (initials, playerOrder) => {
         const { players } = get();
         const playerMap = new Map(players.map(p => [p.id, p]));
-        const reorderedPlayers = playerOrder.map(id => playerMap.get(id)!);
+        const reorderedPlayers = playerOrder
+          .map(id => playerMap.get(id))
+          .filter((p): p is Player => p !== undefined);
+
+        if (reorderedPlayers.length === 0) return;
+
         set({
           playerInitials: initials,
           players: reorderedPlayers,
@@ -136,30 +147,39 @@ export const useGameStore = create<GameState>()(
 
       rollDice: () => {
         const { isRolling, gameStatus, isTurnProcessing } = get();
-        
+
         // Comprehensive guard using isTurnProcessing
         if (isRolling || isTurnProcessing || gameStatus !== 'playing') {
             return;
         }
 
+        // Capture the current epoch so we can detect a reset mid-roll.
+        const myEpoch = turnEpoch;
+
         (async () => {
           // Immediately set turn as processing to lock out future calls
           set({ isRolling: true, isTurnProcessing: true, diceValue: null });
-          
+
           const delay = (ms: number) => new Promise(res => setTimeout(res, ms));
-          
+
           // Simulate rolling delay
           await delay(1000);
-          
-          const roll = Math.floor(Math.random() * 6) + 1;
+
+          // If the game was reset while we were waiting, bail out.
+          if (myEpoch !== turnEpoch) return;
+
+          const roll = Math.floor(secureRandom() * 6) + 1;
           set({ diceValue: roll, isRolling: false });
-          
+
           // Wait a bit AFTER the dice stops and shows the value before moving the player
           await delay(800);
-          
+
+          // Check again after second delay.
+          if (myEpoch !== turnEpoch) return;
+
           const { players, currentPlayerIndex } = get();
           const currentPlayer = players[currentPlayerIndex];
-          
+
           if (currentPlayer) {
             // Trigger movement
             get().movePlayer(currentPlayer.id, roll);
@@ -247,7 +267,7 @@ export const useGameStore = create<GameState>()(
         if (!occupant) return false;
 
         // Collision detected — randomly pick winner
-        const movingPlayerWins = Math.random() < 0.5;
+        const movingPlayerWins = secureRandom() < 0.5;
         const winnerId = movingPlayerWins ? player.id : occupant.id;
         const loserId = movingPlayerWins ? occupant.id : player.id;
 
@@ -278,6 +298,8 @@ export const useGameStore = create<GameState>()(
           while (destination <= RETREAT_MAX && (occupiedPositions.has(destination) || destination === collisionTile)) {
             destination++;
           }
+          // Clamp to valid range in case the forward search overshot
+          destination = Math.min(destination, RETREAT_MAX);
         }
 
         set({
@@ -354,6 +376,7 @@ export const useGameStore = create<GameState>()(
       },
       
       resetGame: () => {
+          turnEpoch++;
           set({
             gameStatus: 'setup',
             players: [],
@@ -388,6 +411,23 @@ export const useGameStore = create<GameState>()(
     }),
     {
       name: 'wormhole-warp-storage',
+      version: 1,
+      migrate: (persisted: unknown, version: number) => {
+        // If the stored version is older than the current version (or missing),
+        // discard old state so the app starts fresh instead of crashing.
+        if (version < 1) {
+          return {
+            players: [],
+            currentPlayerIndex: 0,
+            gameStatus: 'setup' as const,
+            winner: null,
+            playerInitials: {},
+            wormholeHistory: [],
+            cameraFollowEnabled: true,
+          };
+        }
+        return persisted as Partial<GameState>;
+      },
       partialize: (state) => ({
           // Strip transient animation flag so a reload never leaves a player
           // stuck in isMoving:true (which blocks the Rocket subscription from

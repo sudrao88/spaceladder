@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useGameStore } from '../store/useGameStore';
 import type { WormholeType } from '../store/useGameStore';
 import { PLAYER_EMOJIS } from '../utils/boardUtils';
+import { useFocusTrap } from '../hooks/useFocusTrap';
 
 const selectPendingWormhole = (s: ReturnType<typeof useGameStore.getState>) => s.pendingWormhole;
 const selectExecuteTeleport = (s: ReturnType<typeof useGameStore.getState>) => s.executeTeleport;
@@ -136,6 +137,7 @@ export const WormholeDialog = memo(() => {
   const executeTeleport = useGameStore(selectExecuteTeleport);
   const players = useGameStore(selectPlayers);
   const [isWarping, setIsWarping] = useState(false);
+  const focusTrapRef = useFocusTrap<HTMLDivElement>();
 
   // Pick a message and theme deterministically from the wormhole data
   const wormholeType = pendingWormhole?.wormholeType ?? (pendingWormhole?.isBoost ? 'boost' : 'glitch');
@@ -181,7 +183,11 @@ export const WormholeDialog = memo(() => {
     <AnimatePresence>
       {isVisible && (
         <motion.div
+          ref={focusTrapRef}
           key="wormhole-overlay"
+          role="dialog"
+          aria-modal="true"
+          aria-label={theme.title}
           className="absolute inset-0 z-50 flex items-center justify-center pointer-events-auto"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
