@@ -193,7 +193,7 @@ export const Dice = memo(({ value, isRolling }: DiceProps) => {
                 const targetZ = 0;
                 
                 // Use Damp for smooth spring-like stop
-                const smoothTime = 10;
+                const smoothTime = 5;
                 
                 // Use THREE.MathUtils.damp for frame-rate independent smooth damping
                 groupRef.current.rotation.x = THREE.MathUtils.damp(groupRef.current.rotation.x, targetX, smoothTime, delta);

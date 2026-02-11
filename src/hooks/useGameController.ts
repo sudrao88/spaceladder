@@ -287,7 +287,7 @@ export const GameController = () => {
 
     setTimeout(() => {
       checkWormhole(player);
-    }, 250);
+    }, 500);
   }, [setMoving, checkWormhole]);
 
   return { handleMovementComplete };

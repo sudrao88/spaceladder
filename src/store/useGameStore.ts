@@ -65,7 +65,7 @@ interface GameState {
   toggleCameraFollow: () => void;
 }
 
-const POST_TELEPORT_DELAY_MS = 400;
+const POST_TELEPORT_DELAY_MS = 800;
 
 export const useGameStore = create<GameState>()(
   persist(
@@ -135,13 +135,13 @@ export const useGameStore = create<GameState>()(
           const delay = (ms: number) => new Promise(res => setTimeout(res, ms));
           
           // Simulate rolling delay
-          await delay(600);
-
+          await delay(1000);
+          
           const roll = Math.floor(Math.random() * 6) + 1;
           set({ diceValue: roll, isRolling: false });
-
+          
           // Wait a bit AFTER the dice stops and shows the value before moving the player
-          await delay(400);
+          await delay(800);
           
           const { players, currentPlayerIndex } = get();
           const currentPlayer = players[currentPlayerIndex];
