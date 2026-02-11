@@ -1,4 +1,4 @@
-import { memo, useState } from 'react';
+import { memo, useState, useRef, useEffect, useCallback } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { Dice } from './Dice';
 import { WormholeDialog } from './WormholeDialog';
@@ -22,6 +22,8 @@ const selectIsDefaultView = (s: ReturnType<typeof useGameStore.getState>) => s.i
 const selectTriggerCameraReset = (s: ReturnType<typeof useGameStore.getState>) => s.triggerCameraReset;
 const selectShouldFollowPlayer = (s: ReturnType<typeof useGameStore.getState>) => s.shouldFollowPlayer;
 const selectWormholeHistory = (s: ReturnType<typeof useGameStore.getState>) => s.wormholeHistory;
+const selectCameraFollowEnabled = (s: ReturnType<typeof useGameStore.getState>) => s.cameraFollowEnabled;
+const selectToggleCameraFollow = (s: ReturnType<typeof useGameStore.getState>) => s.toggleCameraFollow;
 
 const SetupScreen = memo(() => {
   const setupGame = useGameStore(selectSetupGame);
@@ -181,43 +183,101 @@ const ResetViewButton = memo(() => {
 
 ResetViewButton.displayName = 'ResetViewButton';
 
-const NewGameButton = memo(() => {
-    const [isDialogOpen, setIsDialogOpen] = useState(false);
+const SettingsButton = memo(() => {
+    const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const [isRestartDialogOpen, setIsRestartDialogOpen] = useState(false);
     const resetGame = useGameStore(selectResetGame);
+    const cameraFollowEnabled = useGameStore(selectCameraFollowEnabled);
+    const toggleCameraFollow = useGameStore(selectToggleCameraFollow);
+    const menuRef = useRef<HTMLDivElement>(null);
 
-    const handleConfirm = () => {
+    const handleRestartConfirm = () => {
         resetGame();
-        setIsDialogOpen(false);
+        setIsRestartDialogOpen(false);
+        setIsMenuOpen(false);
     };
+
+    // Close menu when clicking outside
+    const handleClickOutside = useCallback((e: MouseEvent) => {
+        if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+            setIsMenuOpen(false);
+        }
+    }, []);
+
+    useEffect(() => {
+        if (isMenuOpen) {
+            document.addEventListener('mousedown', handleClickOutside);
+            return () => document.removeEventListener('mousedown', handleClickOutside);
+        }
+    }, [isMenuOpen, handleClickOutside]);
 
     return (
         <>
-            <div className="absolute top-4 right-4 pointer-events-auto">
+            <div className="absolute top-4 right-4 pointer-events-auto" ref={menuRef}>
                 <button
-                    onClick={() => setIsDialogOpen(true)}
-                    className="p-2 bg-gray-800/80 hover:bg-red-700 text-white rounded-full shadow-lg border border-white/20 transition-all flex items-center justify-center group"
-                    title="Start New Game"
+                    onClick={() => setIsMenuOpen(prev => !prev)}
+                    className="p-2 bg-gray-800/80 hover:bg-gray-700 text-white rounded-full shadow-lg border border-white/20 transition-all flex items-center justify-center"
+                    title="Settings"
                 >
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6 group-hover:rotate-180 transition-transform duration-500">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />
-                    </svg>
+                    <span className="text-xl leading-none grayscale">🌐</span>
                 </button>
+
+                {isMenuOpen && (
+                    <div className="absolute top-12 right-0 w-56 bg-gray-900/95 backdrop-blur-md border border-white/20 rounded-xl shadow-2xl overflow-hidden">
+                        <div className="px-4 py-3 border-b border-white/10">
+                            <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Settings</span>
+                        </div>
+
+                        {/* Camera Follow Toggle */}
+                        <button
+                            onClick={toggleCameraFollow}
+                            className="w-full flex items-center justify-between px-4 py-3 hover:bg-white/10 transition-colors"
+                        >
+                            <span className="text-sm text-white">Camera Follow</span>
+                            <div
+                                className={`relative w-10 h-5 rounded-full transition-colors ${
+                                    cameraFollowEnabled ? 'bg-cyan-500' : 'bg-gray-600'
+                                }`}
+                            >
+                                <div
+                                    className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${
+                                        cameraFollowEnabled ? 'translate-x-5' : 'translate-x-0.5'
+                                    }`}
+                                />
+                            </div>
+                        </button>
+
+                        {/* Restart Game */}
+                        <button
+                            onClick={() => {
+                                setIsRestartDialogOpen(true);
+                                setIsMenuOpen(false);
+                            }}
+                            className="w-full flex items-center gap-3 px-4 py-3 hover:bg-red-900/40 transition-colors border-t border-white/10"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4 text-red-400">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />
+                            </svg>
+                            <span className="text-sm text-red-400">Restart Game</span>
+                        </button>
+                    </div>
+                )}
             </div>
 
-            {isDialogOpen && (
+            {isRestartDialogOpen && (
                 <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm pointer-events-auto">
                     <div className="bg-gray-900 border border-white/20 rounded-xl p-8 max-w-sm w-full shadow-2xl transform transition-all scale-100">
                         <h3 className="text-xl font-bold text-white mb-4">Start New Game?</h3>
                         <p className="text-gray-300 mb-6">Are you sure you want to discard the current game and start over?</p>
                         <div className="flex justify-end gap-3">
                             <button
-                                onClick={() => setIsDialogOpen(false)}
+                                onClick={() => setIsRestartDialogOpen(false)}
                                 className="px-4 py-2 text-gray-400 hover:text-white hover:bg-white/10 rounded transition-colors"
                             >
                                 Cancel
                             </button>
                             <button
-                                onClick={handleConfirm}
+                                onClick={handleRestartConfirm}
                                 className="px-4 py-2 bg-red-600 hover:bg-red-500 text-white rounded font-medium shadow-lg shadow-red-500/20 transition-all"
                             >
                                 Confirm
@@ -230,7 +290,7 @@ const NewGameButton = memo(() => {
     );
 });
 
-NewGameButton.displayName = 'NewGameButton';
+SettingsButton.displayName = 'SettingsButton';
 
 
 export const HUD = memo(() => {
@@ -252,7 +312,7 @@ export const HUD = memo(() => {
   return (
     <div className="absolute inset-0 z-10 pointer-events-none">
       <PlayerList currentPlayerIndex={currentPlayerIndex} />
-      <NewGameButton />
+      <SettingsButton />
       <DicePanel />
       <WormholeDialog />
       <ResetViewButton />
