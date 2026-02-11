@@ -77,3 +77,16 @@ html, body, #root {
   30%  { opacity: 1; }
   100% { opacity: 0; transform: rotate(var(--angle, 0deg)) translateY(140px) scaleY(1); }
 }
+
+/* ── Landscape enforcement ─────────────────────────────────── */
+/* Uses @media (orientation: portrait) so it covers all devices including
+   tablets, not just phones below the `md` breakpoint. */
+.landscape-enforce {
+  display: none;
+}
+
+@media (orientation: portrait) {
+  .landscape-enforce {
+    display: flex;
+  }
+}

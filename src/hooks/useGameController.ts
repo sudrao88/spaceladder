@@ -1,6 +1,7 @@
 import { useCallback } from 'react';
 import { useGameStore } from '../store/useGameStore';
 import type { Player, WormholeEvent, WormholeType } from '../store/useGameStore';
+import { secureRandom, secureRandomInt } from '../utils/random';
 
 // Granular selectors — subscribe only to what the controller needs
 const selectSetMoving = (s: ReturnType<typeof useGameStore.getState>) => s.setMoving;
@@ -9,8 +10,7 @@ const selectSetPendingWormhole = (s: ReturnType<typeof useGameStore.getState>) =
 const selectAddWormholeEvent = (s: ReturnType<typeof useGameStore.getState>) => s.addWormholeEvent;
 
 /** Inclusive random integer in [min, max] */
-const randomInt = (min: number, max: number): number =>
-  Math.floor(Math.random() * (max - min + 1)) + min;
+const randomInt = secureRandomInt;
 
 /** Clamp a value between min and max */
 const clamp = (value: number, min: number, max: number): number =>
@@ -195,7 +195,7 @@ export const GameController = () => {
     const params = computeWormholeParams(player, players, wormholeHistory);
 
     // Roll for trigger
-    if (Math.random() >= params.triggerChance) {
+    if (secureRandom() >= params.triggerChance) {
       nextTurn();
       return;
     }
@@ -204,7 +204,7 @@ export const GameController = () => {
     let wormholeType: WormholeType;
 
     // Check for special events first
-    const specialRoll = Math.random();
+    const specialRoll = secureRandom();
 
     if (specialRoll < params.slingshotChance) {
       // COSMIC SLINGSHOT: trailing player teleports to within 3-8 tiles of the leader
@@ -226,8 +226,8 @@ export const GameController = () => {
       wormholeType = 'gravity-well';
     } else {
       // STANDARD WORMHOLE: boost or glitch with dynamic parameters
-      const isDrastic = Math.random() < params.drasticChance;
-      const isForward = Math.random() < params.forwardBias;
+      const isDrastic = secureRandom() < params.drasticChance;
+      const isForward = secureRandom() < params.forwardBias;
 
       let jumpDistance: number;
       if (isForward) {

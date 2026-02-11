@@ -7,7 +7,7 @@ import { activeRocketRef } from '../utils/sceneRefs';
 
 interface RocketProps {
   player: Player;
-  onMovementComplete: () => void;
+  onMovementComplete: (playerId: number) => void;
 }
 
 const ROCKET_ROTATION: [number, number, number] = [-Math.PI / 2, 0, 0];
@@ -92,10 +92,10 @@ export const Rocket = memo(({ player, onMovementComplete }: RocketProps) => {
 
   useEffect(() => {
       if (prevPhase.current === 'landing' && phase === 'idle') {
-          onMovementComplete();
+          onMovementComplete(player.id);
       }
       prevPhase.current = phase;
-  }, [phase, onMovementComplete]);
+  }, [phase, onMovementComplete, player.id]);
 
   const positionTarget = phase === 'lifting' ? preMovePos : rocketTarget;
   const scaleTarget = phase === 'lifting' || phase === 'moving' ? LIFTED_SCALE : LANDED_SCALE;

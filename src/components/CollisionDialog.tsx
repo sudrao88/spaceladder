@@ -2,6 +2,7 @@ import { memo, useState, useCallback, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGameStore } from '../store/useGameStore';
 import { PLAYER_EMOJIS } from '../utils/boardUtils';
+import { useFocusTrap } from '../hooks/useFocusTrap';
 
 const selectPendingCollision = (s: ReturnType<typeof useGameStore.getState>) => s.pendingCollision;
 const selectExecuteCollision = (s: ReturnType<typeof useGameStore.getState>) => s.executeCollision;
@@ -23,6 +24,7 @@ export const CollisionDialog = memo(() => {
   const players = useGameStore(selectPlayers);
   const playerInitials = useGameStore(selectPlayerInitials);
   const [isEjecting, setIsEjecting] = useState(false);
+  const focusTrapRef = useFocusTrap<HTMLDivElement>([isEjecting]);
 
   const message = useMemo(() => {
     if (!pendingCollision) return '';
@@ -69,7 +71,11 @@ export const CollisionDialog = memo(() => {
     <AnimatePresence>
       {isVisible && (
         <motion.div
+          ref={focusTrapRef}
           key="collision-overlay"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Space Collision"
           className="absolute inset-0 z-50 flex items-center justify-center pointer-events-auto p-4"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
