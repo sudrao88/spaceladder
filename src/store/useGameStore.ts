@@ -178,11 +178,11 @@ export const useGameStore = create<GameState>()(
 
         const newPlayers = players.map(p => p.id === playerId ? { ...p, isMoving: true, position: targetPos } : p);
         // Enable camera follow mode when movement starts (if setting is on)
-        const { cameraFollowEnabled } = get();
+        const { cameraFollowEnabled, isDefaultView } = get();
         set({
           players: newPlayers,
           shouldFollowPlayer: cameraFollowEnabled,
-          isDefaultView: cameraFollowEnabled ? false : get().isDefaultView,
+          isDefaultView: cameraFollowEnabled ? false : isDefaultView,
         });
       },
 
@@ -283,18 +283,13 @@ export const useGameStore = create<GameState>()(
       acknowledgeCameraReset: () => set({ shouldResetCamera: false }),
       setShouldFollowPlayer: (shouldFollow) => set({ shouldFollowPlayer: shouldFollow }),
       toggleCameraFollow: () => {
-        const { cameraFollowEnabled } = get();
-        const next = !cameraFollowEnabled;
-        // If disabling mid-follow, stop following and reset camera
-        if (!next) {
-          set({
-            cameraFollowEnabled: false,
-            shouldFollowPlayer: false,
-            shouldResetCamera: true,
-          });
-        } else {
-          set({ cameraFollowEnabled: true });
-        }
+        set((state) => {
+          const next = !state.cameraFollowEnabled;
+          // If disabling mid-follow, stop following and reset camera
+          return next
+            ? { cameraFollowEnabled: true }
+            : { cameraFollowEnabled: false, shouldFollowPlayer: false, shouldResetCamera: true };
+        });
       },
     }),
     {

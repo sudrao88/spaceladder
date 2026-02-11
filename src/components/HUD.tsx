@@ -219,7 +219,7 @@ const SettingsButton = memo(() => {
                     className="p-2 bg-gray-800/80 hover:bg-gray-700 text-white rounded-full shadow-lg border border-white/20 transition-all flex items-center justify-center"
                     title="Settings"
                 >
-                    <span className="text-xl leading-none" style={{ filter: 'grayscale(1)' }}>🌐</span>
+                    <span className="text-xl leading-none grayscale">🌐</span>
                 </button>
 
                 {isMenuOpen && (
