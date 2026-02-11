@@ -10,10 +10,20 @@ export interface Player {
   isMoving: boolean;
 }
 
+export type WormholeType = 'boost' | 'glitch' | 'slingshot' | 'gravity-well';
+
 export interface PendingWormhole {
   playerId: number;
   destination: number;
   isBoost: boolean;
+  wormholeType: WormholeType;
+}
+
+export interface WormholeEvent {
+  playerId: number;
+  fromTile: number;
+  toTile: number;
+  delta: number; // positive = boost, negative = glitch
 }
 
 interface GameState {
@@ -25,6 +35,7 @@ interface GameState {
   gameStatus: 'setup' | 'initials' | 'playing' | 'finished';
   winner: Player | null;
   pendingWormhole: PendingWormhole | null;
+  wormholeHistory: WormholeEvent[];
   playerInitials: Record<number, string>;
 
   // Camera State
@@ -39,6 +50,7 @@ interface GameState {
   movePlayer: (playerId: number, steps: number) => void;
   teleportPlayer: (playerId: number, targetTile: number) => void;
   setPendingWormhole: (wormhole: PendingWormhole | null) => void;
+  addWormholeEvent: (event: WormholeEvent) => void;
   executeTeleport: () => void;
   nextTurn: () => void;
   setMoving: (playerId: number, isMoving: boolean) => void;
@@ -64,6 +76,7 @@ export const useGameStore = create<GameState>()(
       gameStatus: 'setup',
       winner: null,
       pendingWormhole: null,
+      wormholeHistory: [],
       playerInitials: {},
       isDefaultView: true,
       shouldResetCamera: false,
@@ -86,6 +99,7 @@ export const useGameStore = create<GameState>()(
           isRolling: false,
           isTurnProcessing: false,
           pendingWormhole: null,
+          wormholeHistory: [],
           playerInitials: {},
         });
       },
@@ -174,6 +188,12 @@ export const useGameStore = create<GameState>()(
         set({ pendingWormhole: wormhole });
       },
 
+      addWormholeEvent: (event) => {
+        set((state) => ({
+          wormholeHistory: [...state.wormholeHistory, event],
+        }));
+      },
+
       executeTeleport: () => {
         const { pendingWormhole } = get();
         if (!pendingWormhole) return;
@@ -238,6 +258,7 @@ export const useGameStore = create<GameState>()(
             winner: null,
             diceValue: null,
             pendingWormhole: null,
+            wormholeHistory: [],
             playerInitials: {},
             currentPlayerIndex: 0,
             isRolling: false,
@@ -264,6 +285,7 @@ export const useGameStore = create<GameState>()(
           gameStatus: state.gameStatus,
           winner: state.winner,
           playerInitials: state.playerInitials,
+          wormholeHistory: state.wormholeHistory,
       }),
     }
   )

@@ -1,6 +1,7 @@
 import { memo, useState, useCallback, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGameStore } from '../store/useGameStore';
+import type { WormholeType } from '../store/useGameStore';
 import { PLAYER_EMOJIS } from '../utils/boardUtils';
 
 const selectPendingWormhole = (s: ReturnType<typeof useGameStore.getState>) => s.pendingWormhole;
@@ -20,6 +21,81 @@ const GLITCH_MESSAGES = [
   'Spacetime hiccup! The cosmos giveth and taketh away!',
   'Wormhole glitch detected! Turbulence ahead!',
 ];
+
+const SLINGSHOT_MESSAGES = [
+  'Cosmic slingshot engaged! The universe is evening the odds!',
+  'A gravitational assist from a passing star! Catch-up time!',
+  'The galaxy takes pity on the underdog! Full speed ahead!',
+  'A rare spacetime corridor opens! Leapfrog incoming!',
+];
+
+const GRAVITY_WELL_MESSAGES = [
+  'Gravity well detected! The pack is pulling you back!',
+  'A dark matter anomaly drags you toward the fleet!',
+  'The cosmos demands balance! Spacetime correction incoming!',
+  'A stellar anchor latches on! The lead was too comfortable!',
+];
+
+interface WormholeTheme {
+  title: string;
+  borderColor: string;
+  glowColor: string;
+  textColor: string;
+  buttonGradient: string;
+  buttonGlow: string;
+  hoverGlow: string;
+  warpText: string;
+}
+
+const WORMHOLE_THEMES: Record<WormholeType, WormholeTheme> = {
+  boost: {
+    title: 'Wormhole Boost!',
+    borderColor: 'rgba(6,182,212,0.5)',
+    glowColor: 'rgba(6,182,212,0.25)',
+    textColor: '#22d3ee',
+    buttonGradient: 'linear-gradient(135deg, #0891b2, #06b6d4, #22d3ee)',
+    buttonGlow: '0 0 20px rgba(6,182,212,0.5)',
+    hoverGlow: '0 0 30px rgba(6,182,212,0.8), inset 0 0 30px rgba(6,182,212,0.15)',
+    warpText: 'Warping through spacetime...',
+  },
+  glitch: {
+    title: 'Wormhole Glitch!',
+    borderColor: 'rgba(168,85,247,0.5)',
+    glowColor: 'rgba(168,85,247,0.25)',
+    textColor: '#c084fc',
+    buttonGradient: 'linear-gradient(135deg, #7c3aed, #a855f7, #c084fc)',
+    buttonGlow: '0 0 20px rgba(168,85,247,0.5)',
+    hoverGlow: '0 0 30px rgba(168,85,247,0.8), inset 0 0 30px rgba(168,85,247,0.15)',
+    warpText: 'Warping through spacetime...',
+  },
+  slingshot: {
+    title: 'Cosmic Slingshot!',
+    borderColor: 'rgba(250,204,21,0.5)',
+    glowColor: 'rgba(250,204,21,0.25)',
+    textColor: '#facc15',
+    buttonGradient: 'linear-gradient(135deg, #ca8a04, #eab308, #facc15)',
+    buttonGlow: '0 0 20px rgba(250,204,21,0.5)',
+    hoverGlow: '0 0 30px rgba(250,204,21,0.8), inset 0 0 30px rgba(250,204,21,0.15)',
+    warpText: 'Slingshotting past the competition...',
+  },
+  'gravity-well': {
+    title: 'Gravity Well!',
+    borderColor: 'rgba(239,68,68,0.5)',
+    glowColor: 'rgba(239,68,68,0.25)',
+    textColor: '#f87171',
+    buttonGradient: 'linear-gradient(135deg, #b91c1c, #ef4444, #f87171)',
+    buttonGlow: '0 0 20px rgba(239,68,68,0.5)',
+    hoverGlow: '0 0 30px rgba(239,68,68,0.8), inset 0 0 30px rgba(239,68,68,0.15)',
+    warpText: 'Gravitational pull engaging...',
+  },
+};
+
+const MESSAGE_POOLS: Record<WormholeType, string[]> = {
+  boost: BOOST_MESSAGES,
+  glitch: GLITCH_MESSAGES,
+  slingshot: SLINGSHOT_MESSAGES,
+  'gravity-well': GRAVITY_WELL_MESSAGES,
+};
 
 const STAR_COUNT = 60;
 
@@ -61,10 +137,14 @@ export const WormholeDialog = memo(() => {
   const players = useGameStore(selectPlayers);
   const [isWarping, setIsWarping] = useState(false);
 
-  // Pick a message deterministically from the wormhole data
+  // Pick a message and theme deterministically from the wormhole data
+  const wormholeType = pendingWormhole?.wormholeType ?? (pendingWormhole?.isBoost ? 'boost' : 'glitch');
+  const theme = WORMHOLE_THEMES[wormholeType];
+
   const message = useMemo(() => {
     if (!pendingWormhole) return '';
-    const pool = pendingWormhole.isBoost ? BOOST_MESSAGES : GLITCH_MESSAGES;
+    const type = pendingWormhole.wormholeType ?? (pendingWormhole.isBoost ? 'boost' : 'glitch');
+    const pool = MESSAGE_POOLS[type];
     const index = (pendingWormhole.playerId * 31 + pendingWormhole.destination) % pool.length;
     return pool[index];
   }, [pendingWormhole]);
@@ -90,7 +170,12 @@ export const WormholeDialog = memo(() => {
 
   const player = pendingWormhole ? players.find(p => p.id === pendingWormhole.playerId) : null;
   const emoji = player ? PLAYER_EMOJIS[player.id % PLAYER_EMOJIS.length] : '🚀';
-  const isBoost = pendingWormhole?.isBoost ?? false;
+  const destinationTile = pendingWormhole?.destination ?? 0;
+
+  // Icon for the wormhole type
+  const wormholeIcon = wormholeType === 'slingshot' ? '☄️'
+    : wormholeType === 'gravity-well' ? '🕳️'
+    : '🌀';
 
   return (
     <AnimatePresence>
@@ -110,11 +195,9 @@ export const WormholeDialog = memo(() => {
           <motion.div
             className="relative z-10 flex flex-col items-center max-w-sm w-[90%] overflow-hidden rounded-2xl border shadow-2xl"
             style={{
-              borderColor: isBoost ? 'rgba(6,182,212,0.5)' : 'rgba(168,85,247,0.5)',
+              borderColor: theme.borderColor,
               background: 'radial-gradient(ellipse at center, #0f172a 0%, #020617 100%)',
-              boxShadow: isBoost
-                ? '0 0 60px rgba(6,182,212,0.25), 0 0 120px rgba(6,182,212,0.1)'
-                : '0 0 60px rgba(168,85,247,0.25), 0 0 120px rgba(168,85,247,0.1)',
+              boxShadow: `0 0 60px ${theme.glowColor}, 0 0 120px ${theme.glowColor.replace('0.25', '0.1')}`,
             }}
             initial={{ scale: 0.7, opacity: 0, y: 20 }}
             animate={{ scale: 1, opacity: 1, y: 0 }}
@@ -137,45 +220,41 @@ export const WormholeDialog = memo(() => {
                     <div
                       className="wormhole-ring"
                       style={{
-                        '--ring-color': isBoost ? 'rgba(6,182,212,0.6)' : 'rgba(168,85,247,0.6)',
+                        '--ring-color': theme.borderColor.replace('0.5', '0.6'),
                       } as React.CSSProperties}
                     />
                     <span className="text-5xl relative z-10 block" role="img" aria-label="wormhole">
-                      🌀
+                      {wormholeIcon}
                     </span>
                   </div>
 
                   <h2
                     className="text-xl font-bold text-center mb-1"
-                    style={{ color: isBoost ? '#22d3ee' : '#c084fc' }}
+                    style={{ color: theme.textColor }}
                   >
-                    {isBoost ? 'Wormhole Boost!' : 'Wormhole Glitch!'}
+                    {theme.title}
                   </h2>
 
                   <p className="text-gray-300 text-sm text-center mb-1 leading-snug">
                     {message}
                   </p>
 
+                  <p className="text-gray-400 text-xs text-center mb-3 font-mono">
+                    Destination: Tile {destinationTile}
+                  </p>
+
                   <button
                     onClick={handleTeleport}
                     className="group relative px-8 py-3 rounded-xl font-bold text-white text-base transition-all active:scale-95"
                     style={{
-                      background: isBoost
-                        ? 'linear-gradient(135deg, #0891b2, #06b6d4, #22d3ee)'
-                        : 'linear-gradient(135deg, #7c3aed, #a855f7, #c084fc)',
-                      boxShadow: isBoost
-                        ? '0 0 20px rgba(6,182,212,0.5)'
-                        : '0 0 20px rgba(168,85,247,0.5)',
+                      background: theme.buttonGradient,
+                      boxShadow: theme.buttonGlow,
                     }}
                   >
                     <span className="relative z-10">Teleport Now!</span>
                     <div
                       className="absolute inset-0 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity"
-                      style={{
-                        boxShadow: isBoost
-                          ? '0 0 30px rgba(6,182,212,0.8), inset 0 0 30px rgba(6,182,212,0.15)'
-                          : '0 0 30px rgba(168,85,247,0.8), inset 0 0 30px rgba(168,85,247,0.15)',
-                      }}
+                      style={{ boxShadow: theme.hoverGlow }}
                     />
                   </button>
                 </motion.div>
@@ -214,15 +293,15 @@ export const WormholeDialog = memo(() => {
                     {emoji}
                   </motion.span>
 
-                  {/* "Warping..." text */}
+                  {/* Warp status text */}
                   <motion.p
                     className="absolute bottom-5 text-sm font-bold tracking-widest uppercase"
-                    style={{ color: isBoost ? '#22d3ee' : '#c084fc' }}
+                    style={{ color: theme.textColor }}
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: [0, 1, 1, 0], y: [10, 0, 0, -10] }}
                     transition={{ duration: 1.2, times: [0, 0.15, 0.7, 1] }}
                   >
-                    Warping through spacetime...
+                    {theme.warpText}
                   </motion.p>
                 </motion.div>
               )}

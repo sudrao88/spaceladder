@@ -21,6 +21,7 @@ const selectPlayerInitials = (s: ReturnType<typeof useGameStore.getState>) => s.
 const selectIsDefaultView = (s: ReturnType<typeof useGameStore.getState>) => s.isDefaultView;
 const selectTriggerCameraReset = (s: ReturnType<typeof useGameStore.getState>) => s.triggerCameraReset;
 const selectShouldFollowPlayer = (s: ReturnType<typeof useGameStore.getState>) => s.shouldFollowPlayer;
+const selectWormholeHistory = (s: ReturnType<typeof useGameStore.getState>) => s.wormholeHistory;
 
 const SetupScreen = memo(() => {
   const setupGame = useGameStore(selectSetupGame);
@@ -78,26 +79,45 @@ interface PlayerListProps {
   currentPlayerIndex: number;
 }
 
+/** Compute a momentum label from recent wormhole history for a player */
+function getMomentumIndicator(playerId: number, history: ReturnType<typeof useGameStore.getState>['wormholeHistory']): { label: string; color: string } | null {
+  const recent = history.filter(h => h.playerId === playerId).slice(-3);
+  if (recent.length === 0) return null;
+  const net = recent.reduce((sum, h) => sum + Math.sign(h.delta), 0);
+  if (net >= 2) return { label: '\u2191' + recent.filter(h => h.delta > 0).length, color: '#22d3ee' }; // up arrow + count
+  if (net <= -2) return { label: '\u2193' + recent.filter(h => h.delta < 0).length, color: '#c084fc' }; // down arrow + count
+  return null;
+}
+
 const PlayerList = memo(({ currentPlayerIndex }: PlayerListProps) => {
   const players = useGameStore(selectPlayers);
   const playerInitials = useGameStore(selectPlayerInitials);
+  const wormholeHistory = useGameStore(selectWormholeHistory);
 
   return (
     <div className="absolute top-4 left-4 flex flex-col gap-3 pointer-events-auto">
-      {players.map((p, idx) => (
-        <div
-          key={p.id}
-          className={`flex items-center gap-3 px-4 py-2 rounded-xl bg-black/50 backdrop-blur-md border transition-all
-              ${idx === currentPlayerIndex ? 'border-white scale-110 shadow-lg' : 'border-transparent opacity-70'}
-          `}
-        >
-          <span className="text-2xl" role="img" aria-label="player-token">
-            {PLAYER_EMOJIS[p.id % PLAYER_EMOJIS.length]}
-          </span>
-          <span className="text-white font-mono font-bold text-base">{playerInitials[p.id] || `P${p.id + 1}`}</span>
-          <span className="text-cyan-300 ml-2 text-sm">Tile: {p.position}</span>
-        </div>
-      ))}
+      {players.map((p, idx) => {
+        const momentum = getMomentumIndicator(p.id, wormholeHistory);
+        return (
+          <div
+            key={p.id}
+            className={`flex items-center gap-3 px-4 py-2 rounded-xl bg-black/50 backdrop-blur-md border transition-all
+                ${idx === currentPlayerIndex ? 'border-white scale-110 shadow-lg' : 'border-transparent opacity-70'}
+            `}
+          >
+            <span className="text-2xl" role="img" aria-label="player-token">
+              {PLAYER_EMOJIS[p.id % PLAYER_EMOJIS.length]}
+            </span>
+            <span className="text-white font-mono font-bold text-base">{playerInitials[p.id] || `P${p.id + 1}`}</span>
+            <span className="text-cyan-300 ml-2 text-sm">Tile: {p.position}</span>
+            {momentum && (
+              <span className="text-xs font-bold ml-1" style={{ color: momentum.color }}>
+                {momentum.label}
+              </span>
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 });
