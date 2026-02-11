@@ -23,9 +23,11 @@ function reloadIfNewVersionAvailable(): boolean {
   }
 
   // If this is the first visit or the stored version differs from the
-  // running code, persist the current version. No reload needed because
+  // running code, clear stale persisted state (old data may be incompatible
+  // with new code) and record the current version. No reload needed because
   // the running code is already the latest (e.g. user hard-refreshed).
   if (storedVersion !== __APP_VERSION__) {
+    localStorage.removeItem(STORAGE_KEY);
     localStorage.setItem(APP_VERSION_KEY, __APP_VERSION__);
   }
 
