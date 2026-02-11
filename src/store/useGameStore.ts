@@ -26,6 +26,15 @@ export interface WormholeEvent {
   delta: number; // positive = boost, negative = glitch
 }
 
+export interface PendingCollision {
+  movingPlayerId: number;
+  occupyingPlayerId: number;
+  tile: number;
+  winnerId: number;
+  loserId: number;
+  loserDestination: number;
+}
+
 interface GameState {
   players: Player[];
   currentPlayerIndex: number;
@@ -35,6 +44,7 @@ interface GameState {
   gameStatus: 'setup' | 'initials' | 'playing' | 'finished';
   winner: Player | null;
   pendingWormhole: PendingWormhole | null;
+  pendingCollision: PendingCollision | null;
   wormholeHistory: WormholeEvent[];
   playerInitials: Record<number, string>;
 
@@ -53,6 +63,8 @@ interface GameState {
   setPendingWormhole: (wormhole: PendingWormhole | null) => void;
   addWormholeEvent: (event: WormholeEvent) => void;
   executeTeleport: () => void;
+  checkAndHandleCollision: (playerId: number) => boolean;
+  executeCollision: () => void;
   nextTurn: () => void;
   setMoving: (playerId: number, isMoving: boolean) => void;
   resetGame: () => void;
@@ -78,6 +90,7 @@ export const useGameStore = create<GameState>()(
       gameStatus: 'setup',
       winner: null,
       pendingWormhole: null,
+      pendingCollision: null,
       wormholeHistory: [],
       playerInitials: {},
       isDefaultView: true,
@@ -102,6 +115,7 @@ export const useGameStore = create<GameState>()(
           isRolling: false,
           isTurnProcessing: false,
           pendingWormhole: null,
+          pendingCollision: null,
           wormholeHistory: [],
           playerInitials: {},
         });
@@ -206,7 +220,7 @@ export const useGameStore = create<GameState>()(
         const { pendingWormhole } = get();
         if (!pendingWormhole) return;
         const { playerId, destination } = pendingWormhole;
-        
+
         // Teleport the player
         // Keep camera following during teleport (if setting is on)
         const { cameraFollowEnabled } = get();
@@ -215,10 +229,89 @@ export const useGameStore = create<GameState>()(
             pendingWormhole: null,
             shouldFollowPlayer: cameraFollowEnabled,
         }));
-        
-        // Wait a bit before next turn
+
+        // Wait a bit, then check for collision at the wormhole destination
         setTimeout(() => {
-            get().nextTurn();
+            if (!get().checkAndHandleCollision(playerId)) {
+                get().nextTurn();
+            }
+        }, POST_TELEPORT_DELAY_MS);
+      },
+
+      checkAndHandleCollision: (playerId: number): boolean => {
+        const { players } = get();
+        const player = players.find(p => p.id === playerId);
+        if (!player || player.position <= 1) return false;
+
+        const occupant = players.find(p => p.id !== playerId && p.position === player.position);
+        if (!occupant) return false;
+
+        // Collision detected — randomly pick winner
+        const movingPlayerWins = Math.random() < 0.5;
+        const winnerId = movingPlayerWins ? player.id : occupant.id;
+        const loserId = movingPlayerWins ? occupant.id : player.id;
+
+        // Calculate loser destination: back 5 spaces, minimum tile 2
+        const collisionTile = player.position;
+        const RETREAT_MIN = 2;
+        const RETREAT_MAX = 99;
+        let destination = Math.max(collisionTile - 5, RETREAT_MIN);
+
+        // Positions occupied by players other than the loser
+        const occupiedPositions = new Set(
+          players.filter(p => p.id !== loserId).map(p => p.position)
+        );
+
+        // First pass: walk backward to find an empty tile
+        let foundSpot = false;
+        while (destination >= RETREAT_MIN) {
+          if (!occupiedPositions.has(destination)) {
+            foundSpot = true;
+            break;
+          }
+          destination--;
+        }
+
+        // Second pass: if backward search failed, walk forward from retreat start
+        if (!foundSpot) {
+          destination = Math.max(collisionTile - 5, RETREAT_MIN) + 1;
+          while (destination <= RETREAT_MAX && (occupiedPositions.has(destination) || destination === collisionTile)) {
+            destination++;
+          }
+        }
+
+        set({
+          pendingCollision: {
+            movingPlayerId: playerId,
+            occupyingPlayerId: occupant.id,
+            tile: collisionTile,
+            winnerId,
+            loserId,
+            loserDestination: destination,
+          },
+        });
+
+        return true;
+      },
+
+      executeCollision: () => {
+        const { pendingCollision } = get();
+        if (!pendingCollision) return;
+
+        const { loserId, loserDestination } = pendingCollision;
+        const { cameraFollowEnabled } = get();
+
+        set((state) => ({
+          players: state.players.map(p =>
+            p.id === loserId ? { ...p, position: loserDestination } : p
+          ),
+          pendingCollision: null,
+          shouldFollowPlayer: cameraFollowEnabled,
+        }));
+
+        // Wait for the displacement animation, then advance the turn
+        setTimeout(() => {
+          get().nextTurn();
         }, POST_TELEPORT_DELAY_MS);
       },
 
@@ -267,6 +360,7 @@ export const useGameStore = create<GameState>()(
             winner: null,
             diceValue: null,
             pendingWormhole: null,
+            pendingCollision: null,
             wormholeHistory: [],
             playerInitials: {},
             currentPlayerIndex: 0,
