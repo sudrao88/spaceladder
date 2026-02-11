@@ -42,6 +42,7 @@ interface GameState {
   isDefaultView: boolean;
   shouldResetCamera: boolean;
   shouldFollowPlayer: boolean;
+  cameraFollowEnabled: boolean;
 
   // Actions
   setupGame: (playerCount: number) => void;
@@ -61,6 +62,7 @@ interface GameState {
   triggerCameraReset: () => void;
   acknowledgeCameraReset: () => void;
   setShouldFollowPlayer: (shouldFollow: boolean) => void;
+  toggleCameraFollow: () => void;
 }
 
 const POST_TELEPORT_DELAY_MS = 800;
@@ -81,6 +83,7 @@ export const useGameStore = create<GameState>()(
       isDefaultView: true,
       shouldResetCamera: false,
       shouldFollowPlayer: false,
+      cameraFollowEnabled: true,
 
       setupGame: (playerCount) => {
         const colors: PlayerColor[] = ['red', 'blue', 'green', 'yellow'];
@@ -174,8 +177,13 @@ export const useGameStore = create<GameState>()(
         }
 
         const newPlayers = players.map(p => p.id === playerId ? { ...p, isMoving: true, position: targetPos } : p);
-        // Enable camera follow mode when movement starts
-        set({ players: newPlayers, shouldFollowPlayer: true, isDefaultView: false });
+        // Enable camera follow mode when movement starts (if setting is on)
+        const { cameraFollowEnabled } = get();
+        set({
+          players: newPlayers,
+          shouldFollowPlayer: cameraFollowEnabled,
+          isDefaultView: cameraFollowEnabled ? false : get().isDefaultView,
+        });
       },
 
       teleportPlayer: (playerId, targetTile) => {
@@ -200,11 +208,12 @@ export const useGameStore = create<GameState>()(
         const { playerId, destination } = pendingWormhole;
         
         // Teleport the player
-        // Keep camera following during teleport
+        // Keep camera following during teleport (if setting is on)
+        const { cameraFollowEnabled } = get();
         set((state) => ({
             players: state.players.map(p => p.id === playerId ? { ...p, position: destination } : p),
             pendingWormhole: null,
-            shouldFollowPlayer: true // Ensure camera follows to destination
+            shouldFollowPlayer: cameraFollowEnabled,
         }));
         
         // Wait a bit before next turn
@@ -273,6 +282,20 @@ export const useGameStore = create<GameState>()(
       triggerCameraReset: () => set({ shouldResetCamera: true, shouldFollowPlayer: false }),
       acknowledgeCameraReset: () => set({ shouldResetCamera: false }),
       setShouldFollowPlayer: (shouldFollow) => set({ shouldFollowPlayer: shouldFollow }),
+      toggleCameraFollow: () => {
+        const { cameraFollowEnabled } = get();
+        const next = !cameraFollowEnabled;
+        // If disabling mid-follow, stop following and reset camera
+        if (!next) {
+          set({
+            cameraFollowEnabled: false,
+            shouldFollowPlayer: false,
+            shouldResetCamera: true,
+          });
+        } else {
+          set({ cameraFollowEnabled: true });
+        }
+      },
     }),
     {
       name: 'wormhole-warp-storage',
@@ -286,6 +309,7 @@ export const useGameStore = create<GameState>()(
           winner: state.winner,
           playerInitials: state.playerInitials,
           wormholeHistory: state.wormholeHistory,
+          cameraFollowEnabled: state.cameraFollowEnabled,
       }),
     }
   )
