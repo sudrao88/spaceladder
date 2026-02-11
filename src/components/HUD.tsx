@@ -2,6 +2,7 @@ import { memo, useState, useRef, useEffect, useCallback } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { Dice } from './Dice';
 import { WormholeDialog } from './WormholeDialog';
+import { CollisionDialog } from './CollisionDialog';
 import { PlayerInitials } from './PlayerInitials';
 import { useGameStore } from '../store/useGameStore';
 import { PLAYER_EMOJIS } from '../utils/boardUtils';
@@ -315,6 +316,7 @@ export const HUD = memo(() => {
       <SettingsButton />
       <DicePanel />
       <WormholeDialog />
+      <CollisionDialog />
       <ResetViewButton />
     </div>
   );

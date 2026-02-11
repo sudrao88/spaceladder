@@ -286,7 +286,16 @@ export const GameController = () => {
     setMoving(playerId, false);
 
     setTimeout(() => {
-      checkWormhole(player);
+      // Check collision FIRST — if collision, skip wormhole entirely
+      if (useGameStore.getState().checkAndHandleCollision(playerId)) {
+        return;
+      }
+
+      // No collision — proceed with wormhole check
+      const freshPlayer = useGameStore.getState().players.find(p => p.id === playerId);
+      if (freshPlayer) {
+        checkWormhole(freshPlayer);
+      }
     }, 500);
   }, [setMoving, checkWormhole]);
 
