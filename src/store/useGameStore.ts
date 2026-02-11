@@ -251,18 +251,28 @@ export const useGameStore = create<GameState>()(
         const winnerId = movingPlayerWins ? player.id : occupant.id;
         const loserId = movingPlayerWins ? occupant.id : player.id;
 
-        // Calculate loser destination: back 5 spaces, find first unoccupied tile
+        // Calculate loser destination: back 5 spaces, minimum tile 2
         const collisionTile = player.position;
-        let destination = Math.max(collisionTile - 5, 1);
+        const RETREAT_MIN = 2;
+        let destination = Math.max(collisionTile - 5, RETREAT_MIN);
 
         // Positions occupied by players other than the loser
         const occupiedPositions = new Set(
           players.filter(p => p.id !== loserId).map(p => p.position)
         );
 
-        // Walk backward until we find an empty tile (position 1 is always safe)
-        while (destination > 1 && occupiedPositions.has(destination)) {
+        // Walk backward to find an empty tile, but never below tile 2
+        while (destination > RETREAT_MIN && occupiedPositions.has(destination)) {
           destination--;
+        }
+
+        // If backward search is still blocked, walk forward from the
+        // original target to find the nearest empty tile (skip collision tile)
+        if (occupiedPositions.has(destination)) {
+          destination = Math.max(collisionTile - 5, RETREAT_MIN);
+          while (destination < collisionTile && occupiedPositions.has(destination)) {
+            destination++;
+          }
         }
 
         set({
