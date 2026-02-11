@@ -45,16 +45,25 @@ export const CollisionDialog = memo(() => {
 
   const isVisible = pendingCollision !== null;
 
-  if (!isVisible && !isEjecting) return null;
+  const { winner, loser, winnerEmoji, loserEmoji, winnerLabel, loserLabel, collisionTile, loserDestination } = useMemo(() => {
+    if (!pendingCollision) {
+      return { winner: null, loser: null, winnerEmoji: '🚀', loserEmoji: '🚀', winnerLabel: '', loserLabel: '', collisionTile: 0, loserDestination: 0 };
+    }
+    const w = players.find(p => p.id === pendingCollision.winnerId) ?? null;
+    const l = players.find(p => p.id === pendingCollision.loserId) ?? null;
+    return {
+      winner: w,
+      loser: l,
+      winnerEmoji: w ? PLAYER_EMOJIS[w.id % PLAYER_EMOJIS.length] : '🚀',
+      loserEmoji: l ? PLAYER_EMOJIS[l.id % PLAYER_EMOJIS.length] : '🚀',
+      winnerLabel: w ? (playerInitials[w.id] || `P${w.id + 1}`) : '',
+      loserLabel: l ? (playerInitials[l.id] || `P${l.id + 1}`) : '',
+      collisionTile: pendingCollision.tile,
+      loserDestination: pendingCollision.loserDestination,
+    };
+  }, [pendingCollision, players, playerInitials]);
 
-  const winner = pendingCollision ? players.find(p => p.id === pendingCollision.winnerId) : null;
-  const loser = pendingCollision ? players.find(p => p.id === pendingCollision.loserId) : null;
-  const winnerEmoji = winner ? PLAYER_EMOJIS[winner.id % PLAYER_EMOJIS.length] : '🚀';
-  const loserEmoji = loser ? PLAYER_EMOJIS[loser.id % PLAYER_EMOJIS.length] : '🚀';
-  const winnerLabel = winner ? (playerInitials[winner.id] || `P${winner.id + 1}`) : '';
-  const loserLabel = loser ? (playerInitials[loser.id] || `P${loser.id + 1}`) : '';
-  const collisionTile = pendingCollision?.tile ?? 0;
-  const loserDestination = pendingCollision?.loserDestination ?? 0;
+  if (!isVisible && !isEjecting) return null;
 
   return (
     <AnimatePresence>

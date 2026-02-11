@@ -262,18 +262,22 @@ export const useGameStore = create<GameState>()(
           players.filter(p => p.id !== loserId).map(p => p.position)
         );
 
-        // Walk backward to find an empty tile, but never below tile 2
-        while (destination >= RETREAT_MIN && occupiedPositions.has(destination)) {
-          if (destination === RETREAT_MIN) {
-            // Can't go further back — switch to forward search
-            destination = Math.max(collisionTile - 5, RETREAT_MIN) + 1;
-            // Walk forward, but skip the collision tile (winner is there)
-            while (destination <= RETREAT_MAX && (occupiedPositions.has(destination) || destination === collisionTile)) {
-              destination++;
-            }
+        // First pass: walk backward to find an empty tile
+        let foundSpot = false;
+        while (destination >= RETREAT_MIN) {
+          if (!occupiedPositions.has(destination)) {
+            foundSpot = true;
             break;
           }
           destination--;
+        }
+
+        // Second pass: if backward search failed, walk forward from retreat start
+        if (!foundSpot) {
+          destination = Math.max(collisionTile - 5, RETREAT_MIN) + 1;
+          while (destination <= RETREAT_MAX && (occupiedPositions.has(destination) || destination === collisionTile)) {
+            destination++;
+          }
         }
 
         set({
