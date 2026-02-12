@@ -1,7 +1,9 @@
 import { memo, useState, useRef, useEffect, useCallback } from 'react';
+import { Canvas } from '@react-three/fiber';
 import { WormholeDialog } from './WormholeDialog';
 import { CollisionDialog } from './CollisionDialog';
 import { PlayerInitials } from './PlayerInitials';
+import { Dice } from './Dice';
 import { useGameStore } from '../store/useGameStore';
 import { PLAYER_EMOJIS } from '../utils/boardUtils';
 
@@ -10,6 +12,7 @@ import { PLAYER_EMOJIS } from '../utils/boardUtils';
 const selectGameStatus = (s: ReturnType<typeof useGameStore.getState>) => s.gameStatus;
 const selectPlayers = (s: ReturnType<typeof useGameStore.getState>) => s.players;
 const selectCurrentPlayerIndex = (s: ReturnType<typeof useGameStore.getState>) => s.currentPlayerIndex;
+const selectDiceValue = (s: ReturnType<typeof useGameStore.getState>) => s.diceValue;
 const selectIsRolling = (s: ReturnType<typeof useGameStore.getState>) => s.isRolling;
 const selectWinner = (s: ReturnType<typeof useGameStore.getState>) => s.winner;
 const selectSetupGame = (s: ReturnType<typeof useGameStore.getState>) => s.setupGame;
@@ -127,11 +130,13 @@ const PlayerList = memo(({ currentPlayerIndex }: PlayerListProps) => {
 PlayerList.displayName = 'PlayerList';
 
 /**
- * Click overlay for the dice. The 3D dice is rendered via DiceView in the
- * main Canvas (single WebGL context). This component just provides an
- * accessible click/keyboard target that sits on top of the dice tracking div.
+ * Click overlay and 3D render container for the dice.
+ * By rendering the 3D dice in its own Canvas inside the HUD layer (z-10),
+ * we ensure it is always visually on top of the main board Canvas,
+ * even when the camera is zoomed in.
  */
 const DicePanel = memo(() => {
+  const diceValue = useGameStore(selectDiceValue);
   const isRolling = useGameStore(selectIsRolling);
   const rollDice = useGameStore(selectRollDice);
 
@@ -150,11 +155,26 @@ const DicePanel = memo(() => {
           tabIndex={0}
           aria-label={isRolling ? 'Rolling dice...' : 'Roll dice'}
           aria-disabled={isRolling}
-          className="h-24 w-24 bg-transparent relative cursor-pointer hover:scale-110 transition-transform duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400 rounded-full"
+          className="h-24 w-24 bg-transparent relative cursor-pointer hover:scale-110 transition-transform duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400 rounded-full overflow-hidden"
           onClick={!isRolling ? rollDice : undefined}
           onKeyDown={handleKeyDown}
           title="Tap to Roll"
-        />
+        >
+          {/* 
+             Separate Canvas for the dice ensures isolation from the main board's 
+             depth buffer and z-order.
+          */}
+          <Canvas 
+            camera={{ position: [0, 0, 6], fov: 45 }}
+            dpr={[1, 2]}
+            gl={{ antialias: true }}
+          >
+            <ambientLight intensity={0.5} />
+            <pointLight position={[5, 5, 5]} intensity={1} />
+            <pointLight position={[-5, -5, -5]} intensity={0.5} />
+            <Dice value={diceValue} isRolling={isRolling} />
+          </Canvas>
+        </div>
       </div>
     </div>
   );

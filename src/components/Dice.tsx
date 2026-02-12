@@ -1,4 +1,4 @@
-import { useRef, useEffect, useMemo, useState, memo } from 'react';
+import { useRef, useMemo, memo } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Sphere } from '@react-three/drei';
 import * as THREE from 'three';
@@ -8,226 +8,185 @@ interface DiceProps {
     isRolling: boolean;
 }
 
-// Resolution for the texture - High quality for crisp text
-const TEX_SIZE = 1024;
+// Optimized resolution for mobile
+const TEX_SIZE = 512;
 
-// --- ASSET GENERATION ---
-// Create the base moon surface (craters + noise)
-// Returns two canvases: colorCanvas and heightCanvas (for bump map)
-const createBaseMoonAssets = () => {
+/**
+ * Pre-generates all possible textures for the dice (Moon base, ROLL, and 1-6).
+ * This avoids expensive canvas operations and texture uploads during gameplay.
+ */
+const generateDiceTextures = () => {
+    // 1. Create Base Moon Assets
     const colorCanvas = document.createElement('canvas');
     colorCanvas.width = TEX_SIZE;
     colorCanvas.height = TEX_SIZE;
-    const colorCtx = colorCanvas.getContext('2d');
+    const colorCtx = colorCanvas.getContext('2d')!;
     
     const heightCanvas = document.createElement('canvas');
     heightCanvas.width = TEX_SIZE;
     heightCanvas.height = TEX_SIZE;
-    const heightCtx = heightCanvas.getContext('2d');
+    const heightCtx = heightCanvas.getContext('2d')!;
 
-    if (!colorCtx || !heightCtx) return null;
-
-    // 1. Background
-    // Color: Brighter Moon
-    colorCtx.fillStyle = '#FFFFFF'; 
+    // Background
+    colorCtx.fillStyle = '#EBEBEB'; 
     colorCtx.fillRect(0, 0, TEX_SIZE, TEX_SIZE);
-    
-    // Height: Mid-grey (surface level)
     heightCtx.fillStyle = '#808080';
     heightCtx.fillRect(0, 0, TEX_SIZE, TEX_SIZE);
 
-    // 2. Craters
-    for (let i = 0; i < 50; i++) {
+    const drawCrater = (ctxC: CanvasRenderingContext2D, ctxH: CanvasRenderingContext2D, x: number, y: number, r: number, opacity: number) => {
+        // Height Map
+        ctxH.beginPath();
+        ctxH.arc(x, y, r * 1.15, 0, Math.PI * 2);
+        ctxH.fillStyle = '#A0A0A0';
+        ctxH.fill();
+
+        ctxH.beginPath();
+        ctxH.arc(x, y, r, 0, Math.PI * 2);
+        const hGrad = ctxH.createRadialGradient(x, y, 0, x, y, r);
+        hGrad.addColorStop(0, '#202020');
+        hGrad.addColorStop(0.7, '#505050');
+        hGrad.addColorStop(0.95, '#808080');
+        hGrad.addColorStop(1, '#A0A0A0');
+        ctxH.fillStyle = hGrad;
+        ctxH.fill();
+
+        // Color Map
+        ctxC.beginPath();
+        ctxC.arc(x, y, r * 1.1, 0, Math.PI * 2);
+        ctxC.fillStyle = `rgba(255, 255, 255, ${opacity * 0.5})`;
+        ctxC.fill();
+
+        ctxC.beginPath();
+        ctxC.arc(x, y, r, 0, Math.PI * 2);
+        const cGrad = ctxC.createRadialGradient(x, y, 0, x, y, r);
+        const shade = Math.floor(Math.random() * 40 + 120);
+        cGrad.addColorStop(0, `rgba(${shade - 40}, ${shade - 40}, ${shade - 40}, ${opacity})`);
+        cGrad.addColorStop(1, `rgba(${shade}, ${shade}, ${shade}, ${opacity * 0.5})`);
+        ctxC.fillStyle = cGrad;
+        ctxC.fill();
+    };
+
+    for (let i = 0; i < 80; i++) {
         const x = Math.random() * TEX_SIZE;
         const y = Math.random() * TEX_SIZE;
-        const r = Math.random() * (TEX_SIZE / 10) + 10; // Varied sizes
-        
-        // --- Color Map ---
-        colorCtx.beginPath();
-        colorCtx.arc(x, y, r, 0, Math.PI * 2);
-        // Lighter craters
-        colorCtx.fillStyle = `rgba(200, 200, 200, ${Math.random() * 0.2})`;
-        colorCtx.fill();
-        
-        // --- Height Map (Craters are depressions) ---
-        heightCtx.beginPath();
-        heightCtx.arc(x, y, r, 0, Math.PI * 2);
-        // Gradient for rounded crater bottom
-        const g = heightCtx.createRadialGradient(x, y, 0, x, y, r);
-        g.addColorStop(0, '#404040'); // Deep center
-        g.addColorStop(0.8, '#707070'); // Slope
-        g.addColorStop(1, '#808080'); // Rim/Surface
-        heightCtx.fillStyle = g;
-        heightCtx.fill();
+        const r = Math.random() * (TEX_SIZE / 12) + 4;
+        const opacity = Math.random() * 0.4 + 0.1;
+
+        const wraps = [[0,0], [TEX_SIZE,0], [-TEX_SIZE,0], [0,TEX_SIZE], [0,-TEX_SIZE], [TEX_SIZE,TEX_SIZE], [TEX_SIZE,-TEX_SIZE], [-TEX_SIZE,TEX_SIZE], [-TEX_SIZE,-TEX_SIZE]];
+        wraps.forEach(([ox, oy]) => {
+            const tx = x + ox;
+            const ty = y + oy;
+            if (tx > -r*2 && tx < TEX_SIZE+r*2 && ty > -r*2 && ty < TEX_SIZE+r*2) {
+                drawCrater(colorCtx, heightCtx, tx, ty, r, opacity);
+            }
+        });
     }
 
-    // 3. Noise for texture
+    // Apply noise
     const cData = colorCtx.getImageData(0, 0, TEX_SIZE, TEX_SIZE);
     const hData = heightCtx.getImageData(0, 0, TEX_SIZE, TEX_SIZE);
-    
     for (let i = 0; i < cData.data.length; i += 4) {
-        const noise = (Math.random() - 0.5) * 10; // Reduced noise for cleaner bright look
-        
-        // Color noise
-        cData.data[i] = Math.min(255, Math.max(0, cData.data[i] + noise));
-        cData.data[i+1] = Math.min(255, Math.max(0, cData.data[i+1] + noise));
-        cData.data[i+2] = Math.min(255, Math.max(0, cData.data[i+2] + noise));
-
-        // Height noise (roughness)
-        const hNoise = noise * 1.5; 
-        hData.data[i] = Math.min(255, Math.max(0, hData.data[i] + hNoise));
-        hData.data[i+1] = Math.min(255, Math.max(0, hData.data[i+1] + hNoise));
-        hData.data[i+2] = Math.min(255, Math.max(0, hData.data[i+2] + hNoise));
+        const n = (Math.random() - 0.5) * 15;
+        const m = (Math.random() - 0.5) * 20;
+        cData.data[i] += m; cData.data[i+1] += m; cData.data[i+2] += m;
+        hData.data[i] += n; hData.data[i+1] += n; hData.data[i+2] += n;
     }
-    
     colorCtx.putImageData(cData, 0, 0);
     heightCtx.putImageData(hData, 0, 0);
 
-    return { colorCanvas, heightCanvas };
+    // 2. Generate Texture Variants
+    const variants: Record<string, { color: THREE.CanvasTexture, bump: THREE.CanvasTexture }> = {};
+    const labels = [null, 'ROLL', '1', '2', '3', '4', '5', '6'];
+
+    labels.forEach(label => {
+        const cCanvas = document.createElement('canvas');
+        cCanvas.width = TEX_SIZE; cCanvas.height = TEX_SIZE;
+        const cCtx = cCanvas.getContext('2d')!;
+        cCtx.drawImage(colorCanvas, 0, 0);
+
+        const hCanvas = document.createElement('canvas');
+        hCanvas.width = TEX_SIZE; hCanvas.height = TEX_SIZE;
+        const hCtx = hCanvas.getContext('2d')!;
+        hCtx.drawImage(heightCanvas, 0, 0);
+
+        if (label) {
+            // Reduced font sizes
+            const fontSize = label === 'ROLL' ? 90 : 180;
+            const font = `900 ${fontSize}px "Iceland", sans-serif`;
+            const cx = TEX_SIZE / 2;
+            const cy = TEX_SIZE / 2;
+
+            hCtx.textAlign = 'center'; hCtx.textBaseline = 'middle'; hCtx.font = font;
+            hCtx.fillStyle = '#000000';
+            hCtx.fillText(label, cx, cy);
+
+            cCtx.textAlign = 'center'; cCtx.textBaseline = 'middle'; cCtx.font = font;
+            cCtx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+            cCtx.fillText(label, cx + 5, cy + 5);
+            cCtx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+            cCtx.fillText(label, cx - 5, cy - 5);
+            cCtx.fillStyle = '#222222';
+            cCtx.fillText(label, cx, cy);
+        }
+
+        const cTex = new THREE.CanvasTexture(cCanvas);
+        cTex.colorSpace = THREE.SRGBColorSpace;
+        cTex.wrapS = cTex.wrapT = THREE.RepeatWrapping;
+        
+        const hTex = new THREE.CanvasTexture(hCanvas);
+        hTex.wrapS = hTex.wrapT = THREE.RepeatWrapping;
+
+        variants[label || 'BASE'] = { color: cTex, bump: hTex };
+    });
+
+    return variants;
 };
 
 export const Dice = memo(({ value, isRolling }: DiceProps) => {
     const groupRef = useRef<THREE.Group>(null);
     
-    // Memoize expensive generation
-    const baseAssets = useMemo(() => createBaseMoonAssets(), []);
+    // Static textures generated once and reused
+    const textureVariants = useMemo(() => generateDiceTextures(), []);
     
-    const [textures, setTextures] = useState<{ colorMap: THREE.CanvasTexture, bumpMap: THREE.CanvasTexture } | null>(null);
+    // Select the active texture pair based on game state
+    const activeTextures = useMemo(() => {
+        if (isRolling) return textureVariants['BASE'];
+        if (value === null) return textureVariants['ROLL'];
+        return textureVariants[value.toString()] || textureVariants['BASE'];
+    }, [isRolling, value, textureVariants]);
 
-    // Regenerate textures when text/value changes
-    useEffect(() => {
-        if (!baseAssets) return;
-        
-        const { colorCanvas: baseColor, heightCanvas: baseHeight } = baseAssets;
-        
-        // Create working canvases
-        const cCanvas = document.createElement('canvas');
-        cCanvas.width = TEX_SIZE;
-        cCanvas.height = TEX_SIZE;
-        const cCtx = cCanvas.getContext('2d')!;
-        cCtx.drawImage(baseColor, 0, 0);
-
-        const hCanvas = document.createElement('canvas');
-        hCanvas.width = TEX_SIZE;
-        hCanvas.height = TEX_SIZE;
-        const hCtx = hCanvas.getContext('2d')!;
-        hCtx.drawImage(baseHeight, 0, 0);
-
-        // Determine what text to carve
-        let text = '';
-        let fontSize = 200; // Default large
-        
-        if (!isRolling) {
-             if (value !== null) {
-                 text = value.toString();
-                 fontSize = 250; 
-             } else {
-                 text = 'ROLL';
-                 fontSize = 120;
-             }
-        }
-
-        if (text) {
-            const cx = TEX_SIZE / 2;
-            const cy = TEX_SIZE / 2;
-            const font = `900 ${fontSize}px "Iceland", "Arial Black", sans-serif`;
-
-            // --- Draw on Height Map (Carve) ---
-            hCtx.textAlign = 'center';
-            hCtx.textBaseline = 'middle';
-            hCtx.font = font;
-            
-            // We want a deep, sharp carve.
-            hCtx.fillStyle = '#101010'; // Very deep carve (almost black in height map)
-            hCtx.fillText(text, cx, cy);
-            
-            // --- Draw on Color Map (Visual depth cues) ---
-            cCtx.textAlign = 'center';
-            cCtx.textBaseline = 'middle';
-            cCtx.font = font;
-            
-            // 1. Highlight on Bottom-Right edge (far wall catching light)
-            cCtx.fillStyle = 'rgba(255, 255, 255, 0.7)'; // Brighter highlight
-            cCtx.fillText(text, cx + 4, cy + 4);
-            
-            // 2. Shadow on Top-Left edge (near wall casting shadow)
-            cCtx.fillStyle = 'rgba(0, 0, 0, 0.7)'; // Darker shadow for more contrast
-            cCtx.fillText(text, cx - 4, cy - 4);
-
-            // 3. The floor of the carving (darker, shadowed moon dust)
-            cCtx.fillStyle = '#333333'; // Darker text for better contrast
-            cCtx.fillText(text, cx, cy);
-        }
-
-        // Create Textures
-        const cTex = new THREE.CanvasTexture(cCanvas);
-        cTex.colorSpace = THREE.SRGBColorSpace;
-        const hTex = new THREE.CanvasTexture(hCanvas);
-
-        setTextures({ colorMap: cTex, bumpMap: hTex });
-
-        // Cleanup function for old textures
-        return () => {
-            cTex.dispose();
-            hTex.dispose();
-        };
-
-    }, [baseAssets, value, isRolling]); // Re-run when these change
-
-    // Frame update for rotation animation
     useFrame((_, delta) => {
         if (!groupRef.current) return;
 
         if (isRolling) {
-            // Spin fast on multiple axes
             groupRef.current.rotation.x += delta * 15;
             groupRef.current.rotation.y += delta * 12;
             groupRef.current.rotation.z += delta * 8;
+        } else if (value !== null) {
+            const smoothTime = 5;
+            groupRef.current.rotation.x = THREE.MathUtils.damp(groupRef.current.rotation.x, 0, smoothTime, delta);
+            groupRef.current.rotation.y = THREE.MathUtils.damp(groupRef.current.rotation.y, -Math.PI / 2, smoothTime, delta);
+            groupRef.current.rotation.z = THREE.MathUtils.damp(groupRef.current.rotation.z, 0, smoothTime, delta);
         } else {
-             if (value !== null) {
-                // When we have a value, we want to stop and show it.
-                // Text is centered at UV (0.5, 0.5)
-                // Assuming standard UV mapping where 0.5 is at -90 degrees Y rotation relative to camera Z
-                const targetX = 0;
-                const targetY = -Math.PI / 2; 
-                const targetZ = 0;
-                
-                // Use Damp for smooth spring-like stop
-                const smoothTime = 5;
-                
-                // Use THREE.MathUtils.damp for frame-rate independent smooth damping
-                groupRef.current.rotation.x = THREE.MathUtils.damp(groupRef.current.rotation.x, targetX, smoothTime, delta);
-                
-                // Simple Y damp
-                groupRef.current.rotation.y = THREE.MathUtils.damp(groupRef.current.rotation.y, targetY, smoothTime, delta);
-                
-                groupRef.current.rotation.z = THREE.MathUtils.damp(groupRef.current.rotation.z, targetZ, smoothTime, delta);
-             } else {
-                 // Gently damp X and Z to 0 to remove any tilt from rolling
-                 groupRef.current.rotation.x = THREE.MathUtils.damp(groupRef.current.rotation.x, 0, 5, delta);
-                 groupRef.current.rotation.z = THREE.MathUtils.damp(groupRef.current.rotation.z, 0, 5, delta);
-                 
-                 // Idle spin clockwise around Y
-                 groupRef.current.rotation.y -= delta * 0.5;
-             }
+            groupRef.current.rotation.x = THREE.MathUtils.damp(groupRef.current.rotation.x, 0, 5, delta);
+            groupRef.current.rotation.z = THREE.MathUtils.damp(groupRef.current.rotation.z, 0, 5, delta);
+            groupRef.current.rotation.y -= delta * 0.5;
         }
     });
 
     return (
         <group ref={groupRef}>
-            {/* High segment count for smooth bump mapping */}
-            <Sphere args={[2.2, 64, 64]}>
-                {textures && (
-                    <meshStandardMaterial 
-                        map={textures.colorMap}
-                        bumpMap={textures.bumpMap}
-                        bumpScale={0.15} // Depth of the carve
-                        roughness={0.4} // Reduced roughness for a whiter, shinier look
-                        metalness={0.0}
-                        emissive="white"
-                        emissiveIntensity={0.2} // Increased intensity for a brighter feel
-                    />
-                )}
+            {/* Reduced segments from 64 to 48 for better mobile performance without visual loss */}
+            <Sphere args={[2.2, 48, 48]}>
+                <meshStandardMaterial 
+                    map={activeTextures.color}
+                    bumpMap={activeTextures.bump}
+                    bumpScale={0.2} 
+                    roughness={0.6} 
+                    metalness={0.0}
+                    emissive="white"
+                    emissiveIntensity={0.1} 
+                />
             </Sphere>
         </group>
     );
