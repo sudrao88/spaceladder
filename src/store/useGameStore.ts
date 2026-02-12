@@ -135,7 +135,7 @@ interface GameState {
   resetGame: () => void;
 
   // Math Mode Actions
-  resolveMathChallenge: (earnedShield: boolean) => void;
+  resolveMathChallenge: (earnedShield: boolean, playerId: number, diceValue: number) => void;
   useShield: (playerId: number) => void;
   setMathSettings: (settings: Partial<MathSettings>) => void;
   toggleMathMode: () => void;
@@ -263,8 +263,14 @@ export const useGameStore = create<GameState>()(
 
           if (currentPlayer) {
             const targetPos = currentPlayer.position + roll;
-            // Show math challenge if math mode is on and destination is not 100 (win) or >100 (overshoot)
-            if (mathModeEnabled && targetPos < 100) {
+            
+            // MATH MODE CHECK
+            // Condition 1: Math mode must be enabled
+            // Condition 2: Not winning or overshooting (targetPos < 100)
+            // Condition 3: Random chance (e.g., 30%)
+            const shouldChallenge = mathModeEnabled && targetPos < 100 && secureRandom() < 0.3;
+
+            if (shouldChallenge) {
               set({
                 pendingMathChallenge: {
                   playerId: currentPlayer.id,
@@ -494,11 +500,7 @@ export const useGameStore = create<GameState>()(
           });
       },
 
-      resolveMathChallenge: (earnedShield) => {
-        const { pendingMathChallenge } = get();
-        if (!pendingMathChallenge) return;
-        const { playerId, diceValue } = pendingMathChallenge;
-
+      resolveMathChallenge: (earnedShield, playerId, diceValue) => {
         set((state) => ({
           pendingMathChallenge: null,
           ...(earnedShield && {

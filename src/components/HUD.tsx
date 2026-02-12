@@ -33,7 +33,7 @@ const selectSetMathSettings = (s: ReturnType<typeof useGameStore.getState>) => s
 const selectToggleMathMode = (s: ReturnType<typeof useGameStore.getState>) => s.toggleMathMode;
 
 const ToggleSwitch = memo(({ checked, onChange }: { checked: boolean; onChange: () => void }) => (
-  <button onClick={onChange} className="flex items-center">
+  <button onClick={(e) => { e.stopPropagation(); onChange(); }} className="flex items-center">
     <div
       className={`relative w-10 h-5 rounded-full transition-colors ${
         checked ? 'bg-cyan-500' : 'bg-gray-600'
@@ -53,6 +53,7 @@ ToggleSwitch.displayName = 'ToggleSwitch';
 const SetupScreen = memo(() => {
   const setupGame = useGameStore(selectSetupGame);
   const [mathModeOn, setMathModeOn] = useState(false);
+  const [showInfo, setShowInfo] = useState(false);
 
   return (
     <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-black/80 text-white backdrop-blur-sm pointer-events-auto">
@@ -73,40 +74,54 @@ const SetupScreen = memo(() => {
       </div>
 
       {/* Math Mode toggle with explanation */}
-      <div className="flex flex-col items-center max-w-md w-[90%]">
+      <div className="flex flex-col items-center max-w-md w-[90%] relative">
         <div
           onClick={() => setMathModeOn(prev => !prev)}
           role="button"
           tabIndex={0}
-          className={`flex items-center gap-3 px-5 py-3 rounded-xl border transition-all cursor-pointer ${
+          className={`flex items-center gap-3 px-5 py-3 rounded-xl border transition-all cursor-pointer w-full justify-between ${
             mathModeOn
               ? 'border-cyan-400/60 bg-cyan-900/30 shadow-[0_0_15px_rgba(6,182,212,0.3)]'
               : 'border-white/20 bg-gray-800/60 hover:border-white/40'
           }`}
         >
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-            <path
-              d="M12 2L3 7v5c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-9-5z"
-              fill={mathModeOn ? '#22d3ee' : 'transparent'}
-              stroke={mathModeOn ? '#22d3ee' : '#6b7280'}
-              strokeWidth={1.5}
-              opacity={mathModeOn ? 1 : 0.5}
-            />
-            {mathModeOn && (
-              <text x="12" y="15" textAnchor="middle" fontSize="9" fontWeight="bold" fill="#0f172a" fontFamily="monospace">+</text>
-            )}
-          </svg>
-          <span className={`text-sm font-bold ${mathModeOn ? 'text-cyan-400' : 'text-gray-400'}`}>
-            Math Mode {mathModeOn ? 'ON' : 'OFF'}
-          </span>
-          <ToggleSwitch checked={mathModeOn} onChange={() => setMathModeOn(prev => !prev)} />
+          <div className="flex items-center gap-3">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+              <path
+                d="M12 2L3 7v5c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-9-5z"
+                fill={mathModeOn ? '#22d3ee' : 'transparent'}
+                stroke={mathModeOn ? '#22d3ee' : '#6b7280'}
+                strokeWidth={1.5}
+                opacity={mathModeOn ? 1 : 0.5}
+              />
+              {mathModeOn && (
+                <text x="12" y="15" textAnchor="middle" fontSize="9" fontWeight="bold" fill="#0f172a" fontFamily="monospace">+</text>
+              )}
+            </svg>
+            <span className={`text-sm font-bold ${mathModeOn ? 'text-cyan-400' : 'text-gray-400'}`}>
+              Math Mode {mathModeOn ? 'ON' : 'OFF'}
+            </span>
+          </div>
+
+           <div className="flex items-center gap-3">
+              <button
+                onClick={(e) => { e.stopPropagation(); setShowInfo(!showInfo); }}
+                className="w-5 h-5 rounded-full border border-gray-400 flex items-center justify-center text-xs text-gray-400 hover:text-white hover:border-white transition-colors"
+                title="Info"
+              >
+                i
+              </button>
+              <ToggleSwitch checked={mathModeOn} onChange={() => setMathModeOn(prev => !prev)} />
+           </div>
         </div>
 
-        <p className="text-gray-500 text-xs text-center mt-3 leading-relaxed max-w-sm">
-          After each dice roll, players solve an addition problem. Answer fast enough to earn
-          a <span className="text-cyan-400 font-semibold">Glitch Shield</span> — shields can block wormhole glitches!
-          Timer settings can be adjusted in-game.
-        </p>
+        {showInfo && (
+            <div className="absolute top-full left-0 right-0 mt-2 bg-gray-900 border border-gray-700 rounded-lg p-3 z-20 shadow-xl">
+                 <p className="text-gray-400 text-xs text-center leading-relaxed">
+                  After dice rolls, solve random math problems. Answer fast to earn a <span className="text-cyan-400 font-semibold">Shield</span> that blocks glitches!
+                </p>
+            </div>
+        )}
       </div>
     </div>
   );
