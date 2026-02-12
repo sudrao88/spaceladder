@@ -2,6 +2,7 @@ import { memo, useState, useRef, useEffect, useCallback } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { WormholeDialog } from './WormholeDialog';
 import { CollisionDialog } from './CollisionDialog';
+import { MathChallengeDialog } from './MathChallengeDialog';
 import { PlayerInitials } from './PlayerInitials';
 import { Dice } from './Dice';
 import { useGameStore } from '../store/useGameStore';
@@ -25,6 +26,10 @@ const selectShouldFollowPlayer = (s: ReturnType<typeof useGameStore.getState>) =
 const selectWormholeHistory = (s: ReturnType<typeof useGameStore.getState>) => s.wormholeHistory;
 const selectCameraFollowEnabled = (s: ReturnType<typeof useGameStore.getState>) => s.cameraFollowEnabled;
 const selectToggleCameraFollow = (s: ReturnType<typeof useGameStore.getState>) => s.toggleCameraFollow;
+const selectPlayerShields = (s: ReturnType<typeof useGameStore.getState>) => s.playerShields;
+const selectMathModeEnabled = (s: ReturnType<typeof useGameStore.getState>) => s.mathModeEnabled;
+const selectMathSettings = (s: ReturnType<typeof useGameStore.getState>) => s.mathSettings;
+const selectSetMathSettings = (s: ReturnType<typeof useGameStore.getState>) => s.setMathSettings;
 
 const SetupScreen = memo(() => {
   const setupGame = useGameStore(selectSetupGame);
@@ -94,15 +99,35 @@ function getMomentumIndicator(playerId: number, history: ReturnType<typeof useGa
   return null;
 }
 
+const ShieldBadge = memo(({ count }: { count: number }) => (
+  <span className="flex items-center gap-1 ml-1">
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+      <path
+        d="M12 2L3 7v5c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-9-5z"
+        fill="#22d3ee"
+        stroke="#06b6d4"
+        strokeWidth={1.5}
+      />
+    </svg>
+    <span className="text-cyan-400 text-xs font-mono font-bold">x{count}</span>
+  </span>
+));
+
+ShieldBadge.displayName = 'ShieldBadge';
+
 const PlayerList = memo(({ currentPlayerIndex }: PlayerListProps) => {
   const players = useGameStore(selectPlayers);
   const playerInitials = useGameStore(selectPlayerInitials);
   const wormholeHistory = useGameStore(selectWormholeHistory);
+  const playerShields = useGameStore(selectPlayerShields);
+  const mathModeEnabled = useGameStore(selectMathModeEnabled);
 
   return (
     <div className="absolute top-4 left-4 flex flex-col gap-3 pointer-events-auto">
       {players.map((p, idx) => {
         const momentum = getMomentumIndicator(p.id, wormholeHistory);
+        const shields = playerShields[p.id] || 0;
+        const hasMathMode = mathModeEnabled[p.id];
         return (
           <div
             key={p.id}
@@ -120,6 +145,7 @@ const PlayerList = memo(({ currentPlayerIndex }: PlayerListProps) => {
                 {momentum.label}
               </span>
             )}
+            {hasMathMode && shields > 0 && <ShieldBadge count={shields} />}
           </div>
         );
       })}
@@ -210,6 +236,8 @@ const SettingsButton = memo(() => {
     const resetGame = useGameStore(selectResetGame);
     const cameraFollowEnabled = useGameStore(selectCameraFollowEnabled);
     const toggleCameraFollow = useGameStore(selectToggleCameraFollow);
+    const mathSettings = useGameStore(selectMathSettings);
+    const setMathSettings = useGameStore(selectSetMathSettings);
     const menuRef = useRef<HTMLDivElement>(null);
 
     const handleRestartConfirm = () => {
@@ -267,6 +295,38 @@ const SettingsButton = memo(() => {
                                 />
                             </div>
                         </button>
+
+                        {/* Math Mode: Countdown Timer */}
+                        <div className="flex items-center justify-between px-4 py-3 border-t border-white/10">
+                            <span className="text-sm text-white">Math Timer</span>
+                            <div className="flex items-center gap-1">
+                                <button
+                                    onClick={() => setMathSettings({ countdownSeconds: Math.max(10, mathSettings.countdownSeconds - 10) })}
+                                    className="w-6 h-6 flex items-center justify-center rounded bg-gray-700 hover:bg-gray-600 text-white text-xs font-bold"
+                                >-</button>
+                                <span className="text-xs text-gray-300 font-mono w-8 text-center">{mathSettings.countdownSeconds}s</span>
+                                <button
+                                    onClick={() => setMathSettings({ countdownSeconds: Math.min(120, mathSettings.countdownSeconds + 10) })}
+                                    className="w-6 h-6 flex items-center justify-center rounded bg-gray-700 hover:bg-gray-600 text-white text-xs font-bold"
+                                >+</button>
+                            </div>
+                        </div>
+
+                        {/* Math Mode: Shield Bonus Time */}
+                        <div className="flex items-center justify-between px-4 py-3 border-t border-white/10">
+                            <span className="text-sm text-white">Shield Bonus</span>
+                            <div className="flex items-center gap-1">
+                                <button
+                                    onClick={() => setMathSettings({ shieldThresholdSeconds: Math.max(3, mathSettings.shieldThresholdSeconds - 1) })}
+                                    className="w-6 h-6 flex items-center justify-center rounded bg-gray-700 hover:bg-gray-600 text-white text-xs font-bold"
+                                >-</button>
+                                <span className="text-xs text-gray-300 font-mono w-8 text-center">{mathSettings.shieldThresholdSeconds}s</span>
+                                <button
+                                    onClick={() => setMathSettings({ shieldThresholdSeconds: Math.min(30, mathSettings.shieldThresholdSeconds + 1) })}
+                                    className="w-6 h-6 flex items-center justify-center rounded bg-gray-700 hover:bg-gray-600 text-white text-xs font-bold"
+                                >+</button>
+                            </div>
+                        </div>
 
                         {/* Restart Game */}
                         <button
@@ -335,6 +395,7 @@ export const HUD = memo(() => {
       <PlayerList currentPlayerIndex={currentPlayerIndex} />
       <SettingsButton />
       <DicePanel />
+      <MathChallengeDialog />
       <WormholeDialog />
       <CollisionDialog />
       <ResetViewButton />
