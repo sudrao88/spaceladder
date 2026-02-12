@@ -135,7 +135,7 @@ interface GameState {
   resetGame: () => void;
 
   // Math Mode Actions
-  resolveMathChallenge: (earnedShield: boolean, playerId: number, diceValue: number) => void;
+  resolveMathChallenge: (earnedShield: boolean, playerId: number, diceValue: number, correct: boolean) => void;
   useShield: (playerId: number) => void;
   setMathSettings: (settings: Partial<MathSettings>) => void;
   toggleMathMode: () => void;
@@ -500,7 +500,7 @@ export const useGameStore = create<GameState>()(
           });
       },
 
-      resolveMathChallenge: (earnedShield, playerId, diceValue) => {
+      resolveMathChallenge: (earnedShield, playerId, diceValue, correct) => {
         set((state) => ({
           pendingMathChallenge: null,
           ...(earnedShield && {
@@ -511,8 +511,13 @@ export const useGameStore = create<GameState>()(
           }),
         }));
 
-        // Now trigger the movement that was deferred
-        get().movePlayer(playerId, diceValue);
+        if (correct) {
+          // Correct answer: trigger the movement that was deferred
+          get().movePlayer(playerId, diceValue);
+        } else {
+          // Wrong answer or time's up: skip turn
+          get().nextTurn();
+        }
       },
 
       useShield: (playerId) => {

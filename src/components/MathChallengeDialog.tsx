@@ -92,7 +92,7 @@ const MathChallengeInner = memo(({ challenge }: MathChallengeInnerProps) => {
 
   const handleProceed = useCallback(() => {
     if (!result) return;
-    resolveMathChallenge(result.earnedShield, challenge.playerId, challenge.diceValue);
+    resolveMathChallenge(result.earnedShield, challenge.playerId, challenge.diceValue, result.correct);
   }, [result, resolveMathChallenge, challenge.playerId, challenge.diceValue]);
 
   const player = players.find(p => p.id === challenge.playerId);
@@ -256,13 +256,13 @@ const MathChallengeInner = memo(({ challenge }: MathChallengeInnerProps) => {
               ) : (
                 <>
                   <span className="text-4xl mb-2">&#10008;</span>
-                  <h3 className="text-lg font-bold text-gray-400 mb-1">
+                  <h3 className="text-lg font-bold text-red-400 mb-1">
                     {secondsLeft <= 0 ? "Time's Up!" : 'Not Quite!'}
                   </h3>
                   <p className="text-gray-400 text-sm text-center mb-1">
                     {currentTile} + {diceValue} = {correctAnswer}
                   </p>
-                  <p className="text-gray-500 text-xs text-center mb-4">Better luck next time.</p>
+                  <p className="text-red-400 text-sm font-semibold text-center mb-4">Your turn has been skipped!</p>
                 </>
               )}
 
