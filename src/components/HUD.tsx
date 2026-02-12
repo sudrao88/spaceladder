@@ -32,6 +32,24 @@ const selectMathSettings = (s: ReturnType<typeof useGameStore.getState>) => s.ma
 const selectSetMathSettings = (s: ReturnType<typeof useGameStore.getState>) => s.setMathSettings;
 const selectToggleMathMode = (s: ReturnType<typeof useGameStore.getState>) => s.toggleMathMode;
 
+const ToggleSwitch = memo(({ checked, onChange }: { checked: boolean; onChange: () => void }) => (
+  <button onClick={onChange} className="flex items-center">
+    <div
+      className={`relative w-10 h-5 rounded-full transition-colors ${
+        checked ? 'bg-cyan-500' : 'bg-gray-600'
+      }`}
+    >
+      <div
+        className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${
+          checked ? 'translate-x-5' : 'translate-x-0.5'
+        }`}
+      />
+    </div>
+  </button>
+));
+
+ToggleSwitch.displayName = 'ToggleSwitch';
+
 const SetupScreen = memo(() => {
   const setupGame = useGameStore(selectSetupGame);
   const [mathModeOn, setMathModeOn] = useState(false);
@@ -56,9 +74,11 @@ const SetupScreen = memo(() => {
 
       {/* Math Mode toggle with explanation */}
       <div className="flex flex-col items-center max-w-md w-[90%]">
-        <button
+        <div
           onClick={() => setMathModeOn(prev => !prev)}
-          className={`flex items-center gap-3 px-5 py-3 rounded-xl border transition-all ${
+          role="button"
+          tabIndex={0}
+          className={`flex items-center gap-3 px-5 py-3 rounded-xl border transition-all cursor-pointer ${
             mathModeOn
               ? 'border-cyan-400/60 bg-cyan-900/30 shadow-[0_0_15px_rgba(6,182,212,0.3)]'
               : 'border-white/20 bg-gray-800/60 hover:border-white/40'
@@ -79,18 +99,8 @@ const SetupScreen = memo(() => {
           <span className={`text-sm font-bold ${mathModeOn ? 'text-cyan-400' : 'text-gray-400'}`}>
             Math Mode {mathModeOn ? 'ON' : 'OFF'}
           </span>
-          <div
-            className={`relative w-10 h-5 rounded-full transition-colors ${
-              mathModeOn ? 'bg-cyan-500' : 'bg-gray-600'
-            }`}
-          >
-            <div
-              className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${
-                mathModeOn ? 'translate-x-5' : 'translate-x-0.5'
-              }`}
-            />
-          </div>
-        </button>
+          <ToggleSwitch checked={mathModeOn} onChange={() => setMathModeOn(prev => !prev)} />
+        </div>
 
         <p className="text-gray-500 text-xs text-center mt-3 leading-relaxed max-w-sm">
           After each dice roll, players solve an addition problem. Answer fast enough to earn
@@ -326,42 +336,16 @@ const SettingsButton = memo(() => {
                         </div>
 
                         {/* Camera Follow Toggle */}
-                        <button
-                            onClick={toggleCameraFollow}
-                            className="w-full flex items-center justify-between px-4 py-3 hover:bg-white/10 transition-colors"
-                        >
+                        <div className="w-full flex items-center justify-between px-4 py-3 hover:bg-white/10 transition-colors cursor-pointer" onClick={toggleCameraFollow}>
                             <span className="text-sm text-white">Camera Follow</span>
-                            <div
-                                className={`relative w-10 h-5 rounded-full transition-colors ${
-                                    cameraFollowEnabled ? 'bg-cyan-500' : 'bg-gray-600'
-                                }`}
-                            >
-                                <div
-                                    className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${
-                                        cameraFollowEnabled ? 'translate-x-5' : 'translate-x-0.5'
-                                    }`}
-                                />
-                            </div>
-                        </button>
+                            <ToggleSwitch checked={cameraFollowEnabled} onChange={toggleCameraFollow} />
+                        </div>
 
                         {/* Math Mode Toggle */}
-                        <button
-                            onClick={toggleMathMode}
-                            className="w-full flex items-center justify-between px-4 py-3 hover:bg-white/10 transition-colors border-t border-white/10"
-                        >
+                        <div className="w-full flex items-center justify-between px-4 py-3 hover:bg-white/10 transition-colors border-t border-white/10 cursor-pointer" onClick={toggleMathMode}>
                             <span className="text-sm text-white">Math Mode</span>
-                            <div
-                                className={`relative w-10 h-5 rounded-full transition-colors ${
-                                    mathModeEnabled ? 'bg-cyan-500' : 'bg-gray-600'
-                                }`}
-                            >
-                                <div
-                                    className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${
-                                        mathModeEnabled ? 'translate-x-5' : 'translate-x-0.5'
-                                    }`}
-                                />
-                            </div>
-                        </button>
+                            <ToggleSwitch checked={mathModeEnabled} onChange={toggleMathMode} />
+                        </div>
 
                         {/* Math Mode: Countdown Timer */}
                         <div className="flex items-center justify-between px-4 py-3 border-t border-white/10">

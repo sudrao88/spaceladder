@@ -495,18 +495,19 @@ export const useGameStore = create<GameState>()(
       },
 
       resolveMathChallenge: (earnedShield) => {
-        const { pendingMathChallenge, playerShields } = get();
+        const { pendingMathChallenge } = get();
         if (!pendingMathChallenge) return;
         const { playerId, diceValue } = pendingMathChallenge;
 
-        if (earnedShield) {
-          set({
-            playerShields: { ...playerShields, [playerId]: (playerShields[playerId] || 0) + 1 },
-            pendingMathChallenge: null,
-          });
-        } else {
-          set({ pendingMathChallenge: null });
-        }
+        set((state) => ({
+          pendingMathChallenge: null,
+          ...(earnedShield && {
+            playerShields: {
+              ...state.playerShields,
+              [playerId]: (state.playerShields[playerId] || 0) + 1,
+            },
+          }),
+        }));
 
         // Now trigger the movement that was deferred
         get().movePlayer(playerId, diceValue);

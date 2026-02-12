@@ -62,31 +62,28 @@ const MathChallengeInner = memo(({ challenge }: MathChallengeInnerProps) => {
   const handleDigitPress = useCallback((digit: string) => {
     if (phase !== 'input' || resolvedRef.current) return;
 
+    // Update digit state
     setDigits(prev => {
       if (prev[0] === '') return [digit, ''];
-      if (prev[1] === '') {
-        const newDigits: [string, string] = [prev[0], digit];
-        // Auto-submit when both digits are entered
-        const answer = parseInt(newDigits[0] + newDigits[1], 10);
-
-        const elapsed = (Date.now() - challenge.startTime) / 1000;
-        const correct = answer === challenge.correctAnswer;
-        const earnedShield = correct && elapsed <= mathSettings.shieldThresholdSeconds;
-
-        resolvedRef.current = true;
-        if (timerRef.current) clearInterval(timerRef.current);
-
-        // Use setTimeout to avoid state update during render
-        setTimeout(() => {
-          setResult({ correct, earnedShield });
-          setPhase('result');
-        }, 0);
-
-        return newDigits;
-      }
+      if (prev[1] === '') return [prev[0], digit];
       return prev;
     });
-  }, [phase, mathSettings.shieldThresholdSeconds, challenge.startTime, challenge.correctAnswer]);
+
+    // If the first digit is already filled, this press completes the answer — auto-submit.
+    // We read `digits` from the closure (previous render) to determine the slot being filled.
+    if (digits[0] !== '' && digits[1] === '') {
+      const answer = parseInt(digits[0] + digit, 10);
+      const elapsed = (Date.now() - challenge.startTime) / 1000;
+      const correct = answer === challenge.correctAnswer;
+      const earnedShield = correct && elapsed <= mathSettings.shieldThresholdSeconds;
+
+      resolvedRef.current = true;
+      if (timerRef.current) clearInterval(timerRef.current);
+
+      setResult({ correct, earnedShield });
+      setPhase('result');
+    }
+  }, [phase, digits, challenge.startTime, challenge.correctAnswer, mathSettings.shieldThresholdSeconds]);
 
   const handleClear = useCallback(() => {
     if (phase !== 'input' || resolvedRef.current) return;
