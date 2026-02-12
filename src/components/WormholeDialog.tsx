@@ -8,6 +8,8 @@ import { useFocusTrap } from '../hooks/useFocusTrap';
 const selectPendingWormhole = (s: ReturnType<typeof useGameStore.getState>) => s.pendingWormhole;
 const selectExecuteTeleport = (s: ReturnType<typeof useGameStore.getState>) => s.executeTeleport;
 const selectPlayers = (s: ReturnType<typeof useGameStore.getState>) => s.players;
+const selectPlayerShields = (s: ReturnType<typeof useGameStore.getState>) => s.playerShields;
+const selectUseShield = (s: ReturnType<typeof useGameStore.getState>) => s.useShield;
 
 const BOOST_MESSAGES = [
   'Wormhole detected! The cosmos are in your favour!',
@@ -136,6 +138,8 @@ export const WormholeDialog = memo(() => {
   const pendingWormhole = useGameStore(selectPendingWormhole);
   const executeTeleport = useGameStore(selectExecuteTeleport);
   const players = useGameStore(selectPlayers);
+  const playerShields = useGameStore(selectPlayerShields);
+  const applyShield = useGameStore(selectUseShield);
   const [isWarping, setIsWarping] = useState(false);
   const focusTrapRef = useFocusTrap<HTMLDivElement>([isWarping]);
 
@@ -155,6 +159,11 @@ export const WormholeDialog = memo(() => {
     setIsWarping(true);
   }, []);
 
+  const handleUseShield = useCallback(() => {
+    if (!pendingWormhole) return;
+    applyShield(pendingWormhole.playerId);
+  }, [pendingWormhole, applyShield]);
+
   // Execute teleport after warp animation completes; clean up on unmount
   useEffect(() => {
     if (!isWarping) return;
@@ -173,6 +182,11 @@ export const WormholeDialog = memo(() => {
   const player = pendingWormhole ? players.find(p => p.id === pendingWormhole.playerId) : null;
   const emoji = player ? PLAYER_EMOJIS[player.id % PLAYER_EMOJIS.length] : '🚀';
   const destinationTile = pendingWormhole?.destination ?? 0;
+
+  // Shield availability: only for non-boost (glitch, gravity-well) wormholes
+  const isGlitch = pendingWormhole ? !pendingWormhole.isBoost : false;
+  const shieldCount = pendingWormhole ? (playerShields[pendingWormhole.playerId] || 0) : 0;
+  const canUseShield = isGlitch && shieldCount > 0;
 
   // Icon for the wormhole type
   const wormholeIcon = wormholeType === 'slingshot' ? '☄️'
@@ -249,20 +263,43 @@ export const WormholeDialog = memo(() => {
                     Destination: Tile {destinationTile}
                   </p>
 
-                  <button
-                    onClick={handleTeleport}
-                    className="group relative px-8 py-3 rounded-xl font-bold text-white text-base transition-all active:scale-95"
-                    style={{
-                      background: theme.buttonGradient,
-                      boxShadow: theme.buttonGlow,
-                    }}
-                  >
-                    <span className="relative z-10">Teleport Now!</span>
-                    <div
-                      className="absolute inset-0 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity"
-                      style={{ boxShadow: theme.hoverGlow }}
-                    />
-                  </button>
+                  <div className="flex flex-col items-center gap-2 w-full">
+                    <button
+                      onClick={handleTeleport}
+                      className="group relative px-8 py-3 rounded-xl font-bold text-white text-base transition-all active:scale-95"
+                      style={{
+                        background: theme.buttonGradient,
+                        boxShadow: theme.buttonGlow,
+                      }}
+                    >
+                      <span className="relative z-10">Teleport Now!</span>
+                      <div
+                        className="absolute inset-0 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity"
+                        style={{ boxShadow: theme.hoverGlow }}
+                      />
+                    </button>
+
+                    {canUseShield && (
+                      <button
+                        onClick={handleUseShield}
+                        className="group relative flex items-center gap-2 px-6 py-2 rounded-xl font-bold text-white text-sm transition-all active:scale-95 border border-cyan-500/40 hover:border-cyan-400/70"
+                        style={{
+                          background: 'linear-gradient(135deg, #164e63, #0e7490, #0891b2)',
+                          boxShadow: '0 0 15px rgba(6,182,212,0.3)',
+                        }}
+                      >
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                          <path
+                            d="M12 2L3 7v5c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-9-5z"
+                            fill="#22d3ee"
+                            stroke="#06b6d4"
+                            strokeWidth={1.5}
+                          />
+                        </svg>
+                        <span className="relative z-10">Use Shield ({shieldCount})</span>
+                      </button>
+                    )}
+                  </div>
                 </motion.div>
               )}
 

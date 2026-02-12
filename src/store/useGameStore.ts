@@ -76,6 +76,24 @@ export interface PendingCollision {
   loserDestination: number;
 }
 
+export interface PendingMathChallenge {
+  playerId: number;
+  currentTile: number;
+  diceValue: number;
+  correctAnswer: number;
+  startTime: number; // Date.now() when challenge was shown
+}
+
+export interface MathSettings {
+  countdownSeconds: number;       // total countdown timer (default 60)
+  shieldThresholdSeconds: number; // time within which answering earns a shield (default 7)
+}
+
+const DEFAULT_MATH_SETTINGS: MathSettings = {
+  countdownSeconds: 60,
+  shieldThresholdSeconds: 7,
+};
+
 interface GameState {
   players: Player[];
   currentPlayerIndex: number;
@@ -89,6 +107,12 @@ interface GameState {
   wormholeHistory: WormholeEvent[];
   playerInitials: Record<number, string>;
 
+  // Math Mode State
+  mathModeEnabled: boolean;
+  playerShields: Record<number, number>;
+  pendingMathChallenge: PendingMathChallenge | null;
+  mathSettings: MathSettings;
+
   // Camera State
   isDefaultView: boolean;
   shouldResetCamera: boolean;
@@ -96,7 +120,7 @@ interface GameState {
   cameraFollowEnabled: boolean;
 
   // Actions
-  setupGame: (playerCount: number) => void;
+  setupGame: (playerCount: number, mathMode?: boolean) => void;
   finalizeSetup: (initials: Record<number, string>, playerOrder: number[]) => void;
   rollDice: () => void;
   movePlayer: (playerId: number, steps: number) => void;
@@ -109,6 +133,12 @@ interface GameState {
   nextTurn: () => void;
   setMoving: (playerId: number, isMoving: boolean) => void;
   resetGame: () => void;
+
+  // Math Mode Actions
+  resolveMathChallenge: (earnedShield: boolean) => void;
+  useShield: (playerId: number) => void;
+  setMathSettings: (settings: Partial<MathSettings>) => void;
+  toggleMathMode: () => void;
 
   // Camera Actions
   setIsDefaultView: (isDefault: boolean) => void;
@@ -139,12 +169,16 @@ export const useGameStore = create<GameState>()(
       pendingCollision: null,
       wormholeHistory: [],
       playerInitials: {},
+      mathModeEnabled: false,
+      playerShields: {},
+      pendingMathChallenge: null,
+      mathSettings: DEFAULT_MATH_SETTINGS,
       isDefaultView: true,
       shouldResetCamera: false,
       shouldFollowPlayer: false,
       cameraFollowEnabled: true,
 
-      setupGame: (playerCount) => {
+      setupGame: (playerCount, mathMode) => {
         // Check for app updates on every new game start.
         // If a reload is triggered, bail out — the page will reload with fresh code.
         if (reloadIfNewVersionAvailable()) return;
@@ -168,6 +202,9 @@ export const useGameStore = create<GameState>()(
           pendingCollision: null,
           wormholeHistory: [],
           playerInitials: {},
+          mathModeEnabled: mathMode ?? false,
+          playerShields: {},
+          pendingMathChallenge: null,
         });
       },
 
@@ -221,10 +258,25 @@ export const useGameStore = create<GameState>()(
           // Check again after second delay.
           if (myEpoch !== turnEpoch) return;
 
-          const { players, currentPlayerIndex } = get();
+          const { players, currentPlayerIndex, mathModeEnabled } = get();
           const currentPlayer = players[currentPlayerIndex];
 
           if (currentPlayer) {
+            const targetPos = currentPlayer.position + roll;
+            // Show math challenge if math mode is on and destination is not 100 (win) or >100 (overshoot)
+            if (mathModeEnabled && targetPos < 100) {
+              set({
+                pendingMathChallenge: {
+                  playerId: currentPlayer.id,
+                  currentTile: currentPlayer.position,
+                  diceValue: roll,
+                  correctAnswer: currentPlayer.position + roll,
+                  startTime: Date.now(),
+                },
+              });
+              // Movement will be triggered by resolveMathChallenge
+              return;
+            }
             // Trigger movement
             get().movePlayer(currentPlayer.id, roll);
           } else {
@@ -430,6 +482,9 @@ export const useGameStore = create<GameState>()(
             pendingCollision: null,
             wormholeHistory: [],
             playerInitials: {},
+            mathModeEnabled: false,
+            playerShields: {},
+            pendingMathChallenge: null,
             currentPlayerIndex: 0,
             isRolling: false,
             isTurnProcessing: false,
@@ -437,6 +492,49 @@ export const useGameStore = create<GameState>()(
             shouldFollowPlayer: false,
             isDefaultView: true
           });
+      },
+
+      resolveMathChallenge: (earnedShield) => {
+        const { pendingMathChallenge } = get();
+        if (!pendingMathChallenge) return;
+        const { playerId, diceValue } = pendingMathChallenge;
+
+        set((state) => ({
+          pendingMathChallenge: null,
+          ...(earnedShield && {
+            playerShields: {
+              ...state.playerShields,
+              [playerId]: (state.playerShields[playerId] || 0) + 1,
+            },
+          }),
+        }));
+
+        // Now trigger the movement that was deferred
+        get().movePlayer(playerId, diceValue);
+      },
+
+      useShield: (playerId) => {
+        const { playerShields, pendingWormhole } = get();
+        const shields = playerShields[playerId] || 0;
+        if (shields <= 0 || !pendingWormhole) return;
+
+        set({
+          playerShields: { ...playerShields, [playerId]: shields - 1 },
+          pendingWormhole: null,
+        });
+
+        // Skip wormhole, proceed to next turn
+        get().nextTurn();
+      },
+
+      setMathSettings: (settings) => {
+        set((state) => ({
+          mathSettings: { ...state.mathSettings, ...settings },
+        }));
+      },
+
+      toggleMathMode: () => {
+        set((state) => ({ mathModeEnabled: !state.mathModeEnabled }));
       },
 
       setIsDefaultView: (isDefault) => set({ isDefaultView: isDefault }),
@@ -466,6 +564,9 @@ export const useGameStore = create<GameState>()(
           playerInitials: state.playerInitials,
           wormholeHistory: state.wormholeHistory,
           cameraFollowEnabled: state.cameraFollowEnabled,
+          mathModeEnabled: state.mathModeEnabled,
+          playerShields: state.playerShields,
+          mathSettings: state.mathSettings,
       }),
     }
   )

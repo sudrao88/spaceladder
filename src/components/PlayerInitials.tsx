@@ -131,7 +131,7 @@ export const PlayerInitials = memo(() => {
           {displayOrder.map((playerId, idx) => {
             const emoji = PLAYER_EMOJIS[playerId % PLAYER_EMOJIS.length];
             const chars = initials[playerId] || ['', '', ''];
-            const playerInitials = chars.join('');
+            const playerInitialsStr = chars.join('');
 
             // Ensure ref array exists
             if (!inputRefs.current[playerId]) {
@@ -176,7 +176,7 @@ export const PlayerInitials = memo(() => {
                   </div>
                 ) : (
                   <span className="text-2xl font-mono font-bold text-white tracking-widest min-w-[5rem]">
-                    {playerInitials}
+                    {playerInitialsStr}
                   </span>
                 )}
               </div>
