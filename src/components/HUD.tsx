@@ -1,5 +1,6 @@
 import { memo, useState, useRef, useEffect, useCallback } from 'react';
 import { Canvas } from '@react-three/fiber';
+import { motion, AnimatePresence } from 'framer-motion';
 import { WormholeDialog } from './WormholeDialog';
 import { CollisionDialog } from './CollisionDialog';
 import { MathChallengeDialog } from './MathChallengeDialog';
@@ -52,8 +53,6 @@ ToggleSwitch.displayName = 'ToggleSwitch';
 
 const SetupScreen = memo(() => {
   const setupGame = useGameStore(selectSetupGame);
-  const [mathModeOn, setMathModeOn] = useState(false);
-  const [showInfo, setShowInfo] = useState(false);
 
   return (
     <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-black/80 text-white backdrop-blur-sm pointer-events-auto">
@@ -65,64 +64,14 @@ const SetupScreen = memo(() => {
           <button
             key={num}
             autoFocus={i === 0}
-            onClick={() => setupGame(num, mathModeOn)}
+            onClick={() => setupGame(num)}
             className="px-8 py-4 bg-gray-800 hover:bg-cyan-900 border border-cyan-500 rounded-lg text-xl font-bold transition-all shadow-[0_0_15px_rgba(6,182,212,0.5)] hover:shadow-[0_0_25px_rgba(6,182,212,0.8)]"
           >
             {num} Players
           </button>
         ))}
       </div>
-
-      {/* Math Mode toggle with explanation */}
-      <div className="flex flex-col items-center max-w-md w-[90%] relative">
-        <div
-          onClick={() => setMathModeOn(prev => !prev)}
-          role="button"
-          tabIndex={0}
-          className={`flex items-center gap-3 px-5 py-3 rounded-xl border transition-all cursor-pointer w-full justify-between ${
-            mathModeOn
-              ? 'border-cyan-400/60 bg-cyan-900/30 shadow-[0_0_15px_rgba(6,182,212,0.3)]'
-              : 'border-white/20 bg-gray-800/60 hover:border-white/40'
-          }`}
-        >
-          <div className="flex items-center gap-3">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-              <path
-                d="M12 2L3 7v5c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-9-5z"
-                fill={mathModeOn ? '#22d3ee' : 'transparent'}
-                stroke={mathModeOn ? '#22d3ee' : '#6b7280'}
-                strokeWidth={1.5}
-                opacity={mathModeOn ? 1 : 0.5}
-              />
-              {mathModeOn && (
-                <text x="12" y="15" textAnchor="middle" fontSize="9" fontWeight="bold" fill="#0f172a" fontFamily="monospace">+</text>
-              )}
-            </svg>
-            <span className={`text-sm font-bold ${mathModeOn ? 'text-cyan-400' : 'text-gray-400'}`}>
-              Math Mode {mathModeOn ? 'ON' : 'OFF'}
-            </span>
-          </div>
-
-           <div className="flex items-center gap-3">
-              <button
-                onClick={(e) => { e.stopPropagation(); setShowInfo(!showInfo); }}
-                className="w-5 h-5 rounded-full border border-gray-400 flex items-center justify-center text-xs text-gray-400 hover:text-white hover:border-white transition-colors"
-                title="Info"
-              >
-                i
-              </button>
-              <ToggleSwitch checked={mathModeOn} onChange={() => setMathModeOn(prev => !prev)} />
-           </div>
-        </div>
-
-        {showInfo && (
-            <div className="absolute top-full left-0 right-0 mt-2 bg-gray-900 border border-gray-700 rounded-lg p-3 z-20 shadow-xl">
-                 <p className="text-gray-400 text-xs text-center leading-relaxed">
-                  After dice rolls, solve random math problems. Answer fast to earn a <span className="text-cyan-400 font-semibold">Shield</span> that blocks glitches!
-                </p>
-            </div>
-        )}
-      </div>
+      <p className="text-gray-400 text-sm">Choose player count to begin</p>
     </div>
   );
 });
@@ -301,9 +250,51 @@ const ResetViewButton = memo(() => {
 
 ResetViewButton.displayName = 'ResetViewButton';
 
+const MathModeIntro = memo(({ onClose }: { onClose: () => void }) => (
+  <motion.div 
+    initial={{ opacity: 0, scale: 0.9 }}
+    animate={{ opacity: 1, scale: 1 }}
+    exit={{ opacity: 0, scale: 0.9 }}
+    className="absolute inset-0 z-[60] flex items-center justify-center bg-black/70 backdrop-blur-md pointer-events-auto"
+  >
+    <div className="bg-gray-900 border border-cyan-500/50 rounded-2xl p-8 max-w-md w-full shadow-[0_0_50px_rgba(6,182,212,0.2)]">
+      <div className="flex items-center gap-4 mb-6">
+        <div className="w-12 h-12 rounded-xl bg-cyan-500/20 flex items-center justify-center border border-cyan-500/30">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#22d3ee" strokeWidth="2">
+             <path d="M12 2L3 7v5c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-9-5z" />
+             <text x="12" y="15" textAnchor="middle" fontSize="10" fontWeight="bold" fill="#22d3ee">+</text>
+          </svg>
+        </div>
+        <h2 className="text-2xl font-bold text-white">Math Mode Enabled!</h2>
+      </div>
+      
+      <div className="space-y-4 text-gray-300 mb-8">
+        <p>After a dice roll, you'll sometimes face a math challenge. Solve it correctly to keep moving!</p>
+        <p>
+          <span className="text-cyan-400 font-bold">Glitch Shields:</span> Solve the problem quickly (within the bonus time) to earn a shield. Shields automatically block wormhole glitches!
+        </p>
+        <p className="text-sm italic text-gray-400">
+          Note: You can adjust the challenge timer and shield bonus threshold anytime in the settings menu.
+        </p>
+      </div>
+
+      <button
+        onClick={onClose}
+        className="w-full py-3 bg-cyan-600 hover:bg-cyan-500 text-white rounded-xl font-bold shadow-lg shadow-cyan-500/20 transition-all active:scale-95"
+      >
+        Got it!
+      </button>
+    </div>
+  </motion.div>
+));
+
+MathModeIntro.displayName = 'MathModeIntro';
+
 const SettingsButton = memo(() => {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [isRestartDialogOpen, setIsRestartDialogOpen] = useState(false);
+    const [showMathIntro, setShowMathIntro] = useState(false);
+    
     const resetGame = useGameStore(selectResetGame);
     const cameraFollowEnabled = useGameStore(selectCameraFollowEnabled);
     const toggleCameraFollow = useGameStore(selectToggleCameraFollow);
@@ -317,6 +308,15 @@ const SettingsButton = memo(() => {
         resetGame();
         setIsRestartDialogOpen(false);
         setIsMenuOpen(false);
+    };
+
+    const handleToggleMathMode = () => {
+        const nextValue = !mathModeEnabled;
+        toggleMathMode();
+        if (nextValue) {
+            setIsMenuOpen(false);
+            setShowMathIntro(true);
+        }
     };
 
     // Close menu when clicking outside
@@ -344,8 +344,14 @@ const SettingsButton = memo(() => {
                     <span className="text-xl leading-none grayscale">🌐</span>
                 </button>
 
-                {isMenuOpen && (
-                    <div className="absolute top-12 right-0 w-56 bg-gray-900/95 backdrop-blur-md border border-white/20 rounded-xl shadow-2xl overflow-hidden">
+                <AnimatePresence>
+                  {isMenuOpen && (
+                    <motion.div 
+                      initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                      className="absolute top-12 right-0 w-64 bg-gray-900/95 backdrop-blur-md border border-white/20 rounded-xl shadow-2xl overflow-hidden"
+                    >
                         <div className="px-4 py-3 border-b border-white/10">
                             <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Settings</span>
                         </div>
@@ -357,42 +363,50 @@ const SettingsButton = memo(() => {
                         </div>
 
                         {/* Math Mode Toggle */}
-                        <div className="w-full flex items-center justify-between px-4 py-3 hover:bg-white/10 transition-colors border-t border-white/10 cursor-pointer" onClick={toggleMathMode}>
+                        <div className="w-full flex items-center justify-between px-4 py-3 hover:bg-white/10 transition-colors border-t border-white/10 cursor-pointer" onClick={handleToggleMathMode}>
                             <span className="text-sm text-white">Math Mode</span>
-                            <ToggleSwitch checked={mathModeEnabled} onChange={toggleMathMode} />
+                            <ToggleSwitch checked={mathModeEnabled} onChange={handleToggleMathMode} />
                         </div>
 
-                        {/* Math Mode: Countdown Timer */}
-                        <div className="flex items-center justify-between px-4 py-3 border-t border-white/10">
-                            <span className="text-sm text-white">Math Timer</span>
-                            <div className="flex items-center gap-1">
-                                <button
-                                    onClick={() => setMathSettings({ countdownSeconds: Math.max(10, mathSettings.countdownSeconds - 10) })}
-                                    className="w-6 h-6 flex items-center justify-center rounded bg-gray-700 hover:bg-gray-600 text-white text-xs font-bold"
-                                >-</button>
-                                <span className="text-xs text-gray-300 font-mono w-8 text-center">{mathSettings.countdownSeconds}s</span>
-                                <button
-                                    onClick={() => setMathSettings({ countdownSeconds: Math.min(120, mathSettings.countdownSeconds + 10) })}
-                                    className="w-6 h-6 flex items-center justify-center rounded bg-gray-700 hover:bg-gray-600 text-white text-xs font-bold"
-                                >+</button>
+                        {mathModeEnabled && (
+                          <motion.div 
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: 'auto', opacity: 1 }}
+                            className="overflow-hidden"
+                          >
+                            {/* Math Mode: Countdown Timer */}
+                            <div className="flex items-center justify-between px-4 py-3 border-t border-white/10">
+                                <span className="text-sm text-white">Challenge Timer</span>
+                                <div className="flex items-center gap-1">
+                                    <button
+                                        onClick={() => setMathSettings({ countdownSeconds: Math.max(10, mathSettings.countdownSeconds - 10) })}
+                                        className="w-6 h-6 flex items-center justify-center rounded bg-gray-700 hover:bg-gray-600 text-white text-xs font-bold"
+                                    >-</button>
+                                    <span className="text-xs text-gray-300 font-mono w-8 text-center">{mathSettings.countdownSeconds}s</span>
+                                    <button
+                                        onClick={() => setMathSettings({ countdownSeconds: Math.min(120, mathSettings.countdownSeconds + 10) })}
+                                        className="w-6 h-6 flex items-center justify-center rounded bg-gray-700 hover:bg-gray-600 text-white text-xs font-bold"
+                                    >+</button>
+                                </div>
                             </div>
-                        </div>
 
-                        {/* Math Mode: Shield Bonus Time */}
-                        <div className="flex items-center justify-between px-4 py-3 border-t border-white/10">
-                            <span className="text-sm text-white">Shield Bonus</span>
-                            <div className="flex items-center gap-1">
-                                <button
-                                    onClick={() => setMathSettings({ shieldThresholdSeconds: Math.max(3, mathSettings.shieldThresholdSeconds - 1) })}
-                                    className="w-6 h-6 flex items-center justify-center rounded bg-gray-700 hover:bg-gray-600 text-white text-xs font-bold"
-                                >-</button>
-                                <span className="text-xs text-gray-300 font-mono w-8 text-center">{mathSettings.shieldThresholdSeconds}s</span>
-                                <button
-                                    onClick={() => setMathSettings({ shieldThresholdSeconds: Math.min(30, mathSettings.shieldThresholdSeconds + 1) })}
-                                    className="w-6 h-6 flex items-center justify-center rounded bg-gray-700 hover:bg-gray-600 text-white text-xs font-bold"
-                                >+</button>
+                            {/* Math Mode: Shield Bonus Time */}
+                            <div className="flex items-center justify-between px-4 py-3 border-t border-white/10">
+                                <span className="text-sm text-white">Shield Bonus</span>
+                                <div className="flex items-center gap-1">
+                                    <button
+                                        onClick={() => setMathSettings({ shieldThresholdSeconds: Math.max(3, mathSettings.shieldThresholdSeconds - 1) })}
+                                        className="w-6 h-6 flex items-center justify-center rounded bg-gray-700 hover:bg-gray-600 text-white text-xs font-bold"
+                                    >-</button>
+                                    <span className="text-xs text-gray-300 font-mono w-8 text-center">{mathSettings.shieldThresholdSeconds}s</span>
+                                    <button
+                                        onClick={() => setMathSettings({ shieldThresholdSeconds: Math.min(30, mathSettings.shieldThresholdSeconds + 1) })}
+                                        className="w-6 h-6 flex items-center justify-center rounded bg-gray-700 hover:bg-gray-600 text-white text-xs font-bold"
+                                    >+</button>
+                                </div>
                             </div>
-                        </div>
+                          </motion.div>
+                        )}
 
                         {/* Restart Game */}
                         <button
@@ -407,32 +421,51 @@ const SettingsButton = memo(() => {
                             </svg>
                             <span className="text-sm text-red-400">Restart Game</span>
                         </button>
-                    </div>
-                )}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
             </div>
 
-            {isRestartDialogOpen && (
-                <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm pointer-events-auto">
-                    <div className="bg-gray-900 border border-white/20 rounded-xl p-8 max-w-sm w-full shadow-2xl transform transition-all scale-100">
-                        <h3 className="text-xl font-bold text-white mb-4">Start New Game?</h3>
-                        <p className="text-gray-300 mb-6">Are you sure you want to discard the current game and start over?</p>
-                        <div className="flex justify-end gap-3">
-                            <button
-                                onClick={() => setIsRestartDialogOpen(false)}
-                                className="px-4 py-2 text-gray-400 hover:text-white hover:bg-white/10 rounded transition-colors"
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                onClick={handleRestartConfirm}
-                                className="px-4 py-2 bg-red-600 hover:bg-red-500 text-white rounded font-medium shadow-lg shadow-red-500/20 transition-all"
-                            >
-                                Confirm
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
+            {/* Restart Confirmation Dialog */}
+            <AnimatePresence>
+              {isRestartDialogOpen && (
+                  <motion.div 
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="absolute inset-0 z-[70] flex items-center justify-center bg-black/70 backdrop-blur-sm pointer-events-auto"
+                  >
+                      <motion.div 
+                        initial={{ scale: 0.9, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        exit={{ scale: 0.9, opacity: 0 }}
+                        className="bg-gray-900 border border-white/20 rounded-xl p-8 max-w-sm w-full shadow-2xl"
+                      >
+                          <h3 className="text-xl font-bold text-white mb-4">Start New Game?</h3>
+                          <p className="text-gray-300 mb-6">Are you sure you want to discard the current game and start over?</p>
+                          <div className="flex justify-end gap-3">
+                              <button
+                                  onClick={() => setIsRestartDialogOpen(false)}
+                                  className="px-4 py-2 text-gray-400 hover:text-white hover:bg-white/10 rounded transition-colors"
+                              >
+                                  Cancel
+                              </button>
+                              <button
+                                  onClick={handleRestartConfirm}
+                                  className="px-4 py-2 bg-red-600 hover:bg-red-500 text-white rounded font-medium shadow-lg shadow-red-500/20 transition-all"
+                              >
+                                  Confirm
+                              </button>
+                          </div>
+                      </motion.div>
+                  </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* Math Mode Intro Popup */}
+            <AnimatePresence>
+              {showMathIntro && <MathModeIntro onClose={() => setShowMathIntro(false)} />}
+            </AnimatePresence>
         </>
     );
 });
