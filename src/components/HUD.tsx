@@ -30,26 +30,73 @@ const selectPlayerShields = (s: ReturnType<typeof useGameStore.getState>) => s.p
 const selectMathModeEnabled = (s: ReturnType<typeof useGameStore.getState>) => s.mathModeEnabled;
 const selectMathSettings = (s: ReturnType<typeof useGameStore.getState>) => s.mathSettings;
 const selectSetMathSettings = (s: ReturnType<typeof useGameStore.getState>) => s.setMathSettings;
+const selectToggleMathMode = (s: ReturnType<typeof useGameStore.getState>) => s.toggleMathMode;
 
 const SetupScreen = memo(() => {
   const setupGame = useGameStore(selectSetupGame);
+  const [mathModeOn, setMathModeOn] = useState(false);
 
   return (
     <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-black/80 text-white backdrop-blur-sm pointer-events-auto">
       <h1 className="text-6xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-purple-600 mb-8 neon-text">
         WORMHOLE WARP
       </h1>
-      <div className="flex gap-4" role="group" aria-label="Select number of players">
+      <div className="flex gap-4 mb-8" role="group" aria-label="Select number of players">
         {[2, 3, 4].map((num, i) => (
           <button
             key={num}
             autoFocus={i === 0}
-            onClick={() => setupGame(num)}
+            onClick={() => setupGame(num, mathModeOn)}
             className="px-8 py-4 bg-gray-800 hover:bg-cyan-900 border border-cyan-500 rounded-lg text-xl font-bold transition-all shadow-[0_0_15px_rgba(6,182,212,0.5)] hover:shadow-[0_0_25px_rgba(6,182,212,0.8)]"
           >
             {num} Players
           </button>
         ))}
+      </div>
+
+      {/* Math Mode toggle with explanation */}
+      <div className="flex flex-col items-center max-w-md w-[90%]">
+        <button
+          onClick={() => setMathModeOn(prev => !prev)}
+          className={`flex items-center gap-3 px-5 py-3 rounded-xl border transition-all ${
+            mathModeOn
+              ? 'border-cyan-400/60 bg-cyan-900/30 shadow-[0_0_15px_rgba(6,182,212,0.3)]'
+              : 'border-white/20 bg-gray-800/60 hover:border-white/40'
+          }`}
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+            <path
+              d="M12 2L3 7v5c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-9-5z"
+              fill={mathModeOn ? '#22d3ee' : 'transparent'}
+              stroke={mathModeOn ? '#22d3ee' : '#6b7280'}
+              strokeWidth={1.5}
+              opacity={mathModeOn ? 1 : 0.5}
+            />
+            {mathModeOn && (
+              <text x="12" y="15" textAnchor="middle" fontSize="9" fontWeight="bold" fill="#0f172a" fontFamily="monospace">+</text>
+            )}
+          </svg>
+          <span className={`text-sm font-bold ${mathModeOn ? 'text-cyan-400' : 'text-gray-400'}`}>
+            Math Mode {mathModeOn ? 'ON' : 'OFF'}
+          </span>
+          <div
+            className={`relative w-10 h-5 rounded-full transition-colors ${
+              mathModeOn ? 'bg-cyan-500' : 'bg-gray-600'
+            }`}
+          >
+            <div
+              className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${
+                mathModeOn ? 'translate-x-5' : 'translate-x-0.5'
+              }`}
+            />
+          </div>
+        </button>
+
+        <p className="text-gray-500 text-xs text-center mt-3 leading-relaxed max-w-sm">
+          After each dice roll, players solve an addition problem. Answer fast enough to earn
+          a <span className="text-cyan-400 font-semibold">Glitch Shield</span> — shields can block wormhole glitches!
+          Timer settings can be adjusted in-game.
+        </p>
       </div>
     </div>
   );
@@ -127,7 +174,6 @@ const PlayerList = memo(({ currentPlayerIndex }: PlayerListProps) => {
       {players.map((p, idx) => {
         const momentum = getMomentumIndicator(p.id, wormholeHistory);
         const shields = playerShields[p.id] || 0;
-        const hasMathMode = mathModeEnabled[p.id];
         return (
           <div
             key={p.id}
@@ -145,7 +191,7 @@ const PlayerList = memo(({ currentPlayerIndex }: PlayerListProps) => {
                 {momentum.label}
               </span>
             )}
-            {hasMathMode && shields > 0 && <ShieldBadge count={shields} />}
+            {mathModeEnabled && shields > 0 && <ShieldBadge count={shields} />}
           </div>
         );
       })}
@@ -238,6 +284,8 @@ const SettingsButton = memo(() => {
     const toggleCameraFollow = useGameStore(selectToggleCameraFollow);
     const mathSettings = useGameStore(selectMathSettings);
     const setMathSettings = useGameStore(selectSetMathSettings);
+    const mathModeEnabled = useGameStore(selectMathModeEnabled);
+    const toggleMathMode = useGameStore(selectToggleMathMode);
     const menuRef = useRef<HTMLDivElement>(null);
 
     const handleRestartConfirm = () => {
@@ -291,6 +339,25 @@ const SettingsButton = memo(() => {
                                 <div
                                     className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${
                                         cameraFollowEnabled ? 'translate-x-5' : 'translate-x-0.5'
+                                    }`}
+                                />
+                            </div>
+                        </button>
+
+                        {/* Math Mode Toggle */}
+                        <button
+                            onClick={toggleMathMode}
+                            className="w-full flex items-center justify-between px-4 py-3 hover:bg-white/10 transition-colors border-t border-white/10"
+                        >
+                            <span className="text-sm text-white">Math Mode</span>
+                            <div
+                                className={`relative w-10 h-5 rounded-full transition-colors ${
+                                    mathModeEnabled ? 'bg-cyan-500' : 'bg-gray-600'
+                                }`}
+                            >
+                                <div
+                                    className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${
+                                        mathModeEnabled ? 'translate-x-5' : 'translate-x-0.5'
                                     }`}
                                 />
                             </div>

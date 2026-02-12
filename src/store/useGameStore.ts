@@ -108,7 +108,7 @@ interface GameState {
   playerInitials: Record<number, string>;
 
   // Math Mode State
-  mathModeEnabled: Record<number, boolean>;
+  mathModeEnabled: boolean;
   playerShields: Record<number, number>;
   pendingMathChallenge: PendingMathChallenge | null;
   mathSettings: MathSettings;
@@ -120,8 +120,8 @@ interface GameState {
   cameraFollowEnabled: boolean;
 
   // Actions
-  setupGame: (playerCount: number) => void;
-  finalizeSetup: (initials: Record<number, string>, playerOrder: number[], mathMode: Record<number, boolean>) => void;
+  setupGame: (playerCount: number, mathMode?: boolean) => void;
+  finalizeSetup: (initials: Record<number, string>, playerOrder: number[]) => void;
   rollDice: () => void;
   movePlayer: (playerId: number, steps: number) => void;
   teleportPlayer: (playerId: number, targetTile: number) => void;
@@ -138,6 +138,7 @@ interface GameState {
   resolveMathChallenge: (earnedShield: boolean) => void;
   useShield: (playerId: number) => void;
   setMathSettings: (settings: Partial<MathSettings>) => void;
+  toggleMathMode: () => void;
 
   // Camera Actions
   setIsDefaultView: (isDefault: boolean) => void;
@@ -168,7 +169,7 @@ export const useGameStore = create<GameState>()(
       pendingCollision: null,
       wormholeHistory: [],
       playerInitials: {},
-      mathModeEnabled: {},
+      mathModeEnabled: false,
       playerShields: {},
       pendingMathChallenge: null,
       mathSettings: DEFAULT_MATH_SETTINGS,
@@ -177,7 +178,7 @@ export const useGameStore = create<GameState>()(
       shouldFollowPlayer: false,
       cameraFollowEnabled: true,
 
-      setupGame: (playerCount) => {
+      setupGame: (playerCount, mathMode) => {
         // Check for app updates on every new game start.
         // If a reload is triggered, bail out — the page will reload with fresh code.
         if (reloadIfNewVersionAvailable()) return;
@@ -201,13 +202,13 @@ export const useGameStore = create<GameState>()(
           pendingCollision: null,
           wormholeHistory: [],
           playerInitials: {},
-          mathModeEnabled: {},
+          mathModeEnabled: mathMode ?? false,
           playerShields: {},
           pendingMathChallenge: null,
         });
       },
 
-      finalizeSetup: (initials, playerOrder, mathMode) => {
+      finalizeSetup: (initials, playerOrder) => {
         const { players } = get();
         const playerMap = new Map(players.map(p => [p.id, p]));
         const reorderedPlayers = playerOrder
@@ -218,7 +219,6 @@ export const useGameStore = create<GameState>()(
 
         set({
           playerInitials: initials,
-          mathModeEnabled: mathMode,
           players: reorderedPlayers,
           currentPlayerIndex: 0,
           gameStatus: 'playing',
@@ -264,7 +264,7 @@ export const useGameStore = create<GameState>()(
           if (currentPlayer) {
             const targetPos = currentPlayer.position + roll;
             // Show math challenge if math mode is on and destination is not 100 (win) or >100 (overshoot)
-            if (mathModeEnabled[currentPlayer.id] && targetPos < 100 && targetPos <= 100) {
+            if (mathModeEnabled && targetPos < 100) {
               set({
                 pendingMathChallenge: {
                   playerId: currentPlayer.id,
@@ -482,7 +482,7 @@ export const useGameStore = create<GameState>()(
             pendingCollision: null,
             wormholeHistory: [],
             playerInitials: {},
-            mathModeEnabled: {},
+            mathModeEnabled: false,
             playerShields: {},
             pendingMathChallenge: null,
             currentPlayerIndex: 0,
@@ -530,6 +530,10 @@ export const useGameStore = create<GameState>()(
         set((state) => ({
           mathSettings: { ...state.mathSettings, ...settings },
         }));
+      },
+
+      toggleMathMode: () => {
+        set((state) => ({ mathModeEnabled: !state.mathModeEnabled }));
       },
 
       setIsDefaultView: (isDefault) => set({ isDefaultView: isDefault }),
