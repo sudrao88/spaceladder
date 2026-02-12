@@ -335,7 +335,7 @@ const SettingsButton = memo(() => {
 
     return (
         <>
-            <div className="absolute top-4 right-4 pointer-events-auto" ref={menuRef}>
+            <div className="absolute top-4 right-4 pointer-events-auto z-50" ref={menuRef}>
                 <button
                     onClick={() => setIsMenuOpen(prev => !prev)}
                     className="p-2 bg-gray-800/80 hover:bg-gray-700 text-white rounded-full shadow-lg border border-white/20 transition-all flex items-center justify-center"
