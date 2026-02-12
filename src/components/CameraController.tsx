@@ -13,8 +13,9 @@ const CLOSE_ZOOM_LEVEL_MIN = 35;
 const CLOSE_ZOOM_LEVEL_MULTIPLIER = 2.5;
 
 // Animation Constants
-const CAMERA_DAMPING_LAMBDA = 3.0; 
-const CAMERA_FOLLOW_LAMBDA = 4.0;
+// Increased damping lambda for snappier follow
+const CAMERA_DAMPING_LAMBDA = 5.0; 
+const CAMERA_FOLLOW_LAMBDA = 8.0; 
 const ZOOM_EPSILON = 0.05;
 const POSITION_SNAP_EPSILON = 0.05;
 const POSITION_COMPLETION_EPSILON = 0.1;
@@ -100,7 +101,8 @@ export const CameraController = memo(() => {
     if (!controlsRef.current) return;
 
     // Use a capped delta to prevent huge jumps if the tab was inactive
-    const dt = Math.min(delta, 0.1);
+    // Slightly more aggressive cap for smoother recovery
+    const dt = Math.min(delta, 0.05);
 
     // 1. FOLLOW MODE
     if (shouldFollowPlayer && !isResettingRef.current) {
@@ -111,18 +113,21 @@ export const CameraController = memo(() => {
             let targetZ = 0;
 
             // Priority: Follow the active mesh for smooth animation tracking
+            // We check activeRocketRef first which is updated via useLayoutEffect in Rocket.tsx
             if (activeRocketRef.current && currentPlayer.isMoving) {
                 activeRocketRef.current.getWorldPosition(targetVec.current);
                 targetX = targetVec.current.x;
                 targetZ = targetVec.current.z;
             } else {
                 // Fallback: Tile position
-                const playerPos = getTilePosition(currentPlayer.position);
-                targetX = playerPos[0];
-                targetZ = playerPos[2];
+                // Use the memoized tile position helper
+                const pos = getTilePosition(currentPlayer.position);
+                targetX = pos[0];
+                targetZ = pos[2];
             }
 
-            // Smoothly dampen controls target to player position
+            // Exponential smoothing for position
+            // Increased lambda for tighter tracking
             const alphaPos = 1 - Math.exp(-CAMERA_FOLLOW_LAMBDA * dt);
             
             controlsRef.current.target.x = THREE.MathUtils.lerp(controlsRef.current.target.x, targetX, alphaPos);
@@ -140,7 +145,7 @@ export const CameraController = memo(() => {
                 camera.updateProjectionMatrix();
             }
 
-            // Sync camera position
+            // Sync camera position immediately to avoid frame lag
             camera.position.x = controlsRef.current.target.x;
             camera.position.z = controlsRef.current.target.z;
         }

@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, memo, useRef } from 'react';
+import { useState, useMemo, useEffect, memo, useRef, useLayoutEffect } from 'react';
 import { useSpring, animated } from '@react-spring/three';
 import * as THREE from 'three';
 import { useGameStore, type Player } from '../store/useGameStore';
@@ -59,13 +59,22 @@ export const Rocket = memo(({ player, onMovementComplete }: RocketProps) => {
   const prevPhase = useRef<Phase>('idle');
 
   // Sync active rocket ref for camera following
-  useEffect(() => {
+  // useLayoutEffect ensures the ref is set BEFORE the browser paints and BEFORE the next frame loop reads it.
+  useLayoutEffect(() => {
     if (player.isMoving && groupRef.current) {
       activeRocketRef.current = groupRef.current;
     } else if (activeRocketRef.current === groupRef.current && !player.isMoving) {
+        // Only clear if WE were the active one
         activeRocketRef.current = null;
     }
-  }, [player.isMoving]);
+    
+    // Cleanup on unmount or when player changes
+    return () => {
+       if (activeRocketRef.current === groupRef.current) {
+         activeRocketRef.current = null;
+       }
+    };
+  }, [player.isMoving, player.id]); // Added player.id for safety
 
   useEffect(() => {
     const unsub = useGameStore.subscribe((state, prevState) => {
@@ -121,12 +130,7 @@ export const Rocket = memo(({ player, onMovementComplete }: RocketProps) => {
   });
 
   const emoji = PLAYER_EMOJIS[player.id % PLAYER_EMOJIS.length];
-
-  // Retrieve cached texture
-  // We do NOT dispose these textures on unmount anymore because they are cached globally.
-  // This is a deliberate choice for performance in this game.
   const emojiTexture = getEmojiTexture(emoji);
-
   const isVisible = player.position > 1 || phase !== 'idle';
 
   return (

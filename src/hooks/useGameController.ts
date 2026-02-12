@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useRef } from 'react';
 import { useGameStore } from '../store/useGameStore';
 import type { Player, WormholeEvent, WormholeType } from '../store/useGameStore';
 import { secureRandom, secureRandomInt } from '../utils/random';
@@ -179,6 +179,9 @@ export const GameController = () => {
   const nextTurn = useGameStore(selectNextTurn);
   const setPendingWormhole = useGameStore(selectSetPendingWormhole);
   const addWormholeEvent = useGameStore(selectAddWormholeEvent);
+  
+  // Use a ref to debounce collision checks
+  const processingRef = useRef<Set<number>>(new Set());
 
   const checkWormhole = useCallback((player: Player) => {
     const currentTile = player.position;
@@ -274,20 +277,22 @@ export const GameController = () => {
   }, [nextTurn, setPendingWormhole, addWormholeEvent]);
 
   const handleMovementComplete = useCallback((playerId: number) => {
+    // Prevent double-processing
+    if (processingRef.current.has(playerId)) return;
+    
     // Use getState() to access the most up-to-date state.
-    // This prevents closure staleness issues where multiple rapid calls
-    // (e.g. from animation bounces) might see 'isMoving' as true multiple times,
-    // causing nextTurn() to be called more than once and skipping players.
     const currentPlayers = useGameStore.getState().players;
     const player = currentPlayers.find(p => p.id === playerId);
 
-    if (!player || !player.isMoving) return;
+    if (!player) return; // Removed !player.isMoving check because it might be false by now
 
     setMoving(playerId, false);
+    processingRef.current.add(playerId);
 
     setTimeout(() => {
       // Check collision FIRST — if collision, skip wormhole entirely
       if (useGameStore.getState().checkAndHandleCollision(playerId)) {
+        processingRef.current.delete(playerId);
         return;
       }
 
@@ -296,6 +301,7 @@ export const GameController = () => {
       if (freshPlayer) {
         checkWormhole(freshPlayer);
       }
+      processingRef.current.delete(playerId);
     }, 500);
   }, [setMoving, checkWormhole]);
 
