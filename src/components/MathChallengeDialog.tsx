@@ -92,8 +92,8 @@ const MathChallengeInner = memo(({ challenge }: MathChallengeInnerProps) => {
 
   const handleProceed = useCallback(() => {
     if (!result) return;
-    resolveMathChallenge(result.earnedShield);
-  }, [result, resolveMathChallenge]);
+    resolveMathChallenge(result.earnedShield, challenge.playerId, challenge.diceValue);
+  }, [result, resolveMathChallenge, challenge.playerId, challenge.diceValue]);
 
   const player = players.find(p => p.id === challenge.playerId);
   const emoji = player ? PLAYER_EMOJIS[player.id % PLAYER_EMOJIS.length] : '';
