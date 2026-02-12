@@ -63,15 +63,17 @@ function App() {
           <p className="text-xl font-bold">Please rotate your device to landscape mode to play.</p>
       </div>
 
-      {/* Full-screen tracking div for the main board view */}
-      <div ref={boardViewRef} className="absolute inset-0" />
+      {/* 
+          Tracking divs for drei's View component. 
+          IMPORTANT: These MUST have pointer-events-none so they don't block 
+          the HUD interaction layer. The single Canvas handles all events 
+          via eventSource={containerRef}.
+      */}
+      <div ref={boardViewRef} className="absolute inset-0 pointer-events-none" />
 
-      {/* Dice tracking div — positioned bottom-right. drei's View renders the
-          3D dice into the exact screen region of this element, sharing the
-          single WebGL context with the main board. */}
       <div
         ref={diceViewRef}
-        className="absolute bottom-12 right-12 h-24 w-24 z-20"
+        className="absolute bottom-12 right-12 h-24 w-24 pointer-events-none"
       />
 
       <HUD />
