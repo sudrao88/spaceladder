@@ -6,6 +6,13 @@ import { getBoardTiles, TILE_SIZE } from '../utils/boardUtils';
 const BOARD_OFFSET_Y = 0;
 const TILE_HALF = TILE_SIZE / 2;
 
+const NEBULA_COLORS = [
+  new THREE.Color('#581c87'), // purple
+  new THREE.Color('#1e3a8a'), // blue
+  new THREE.Color('#0e7490'), // cyan
+  new THREE.Color('#9d174d'), // pink
+];
+
 export const Board = memo(() => {
   const tiles = useMemo(() => getBoardTiles(), []);
   const meshRef = useRef<THREE.InstancedMesh>(null);
@@ -19,8 +26,12 @@ export const Board = memo(() => {
         tempObject.rotation.set(-Math.PI / 2, 0, 0);
         tempObject.updateMatrix();
         meshRef.current!.setMatrixAt(i, tempObject.matrix);
+        meshRef.current!.setColorAt(i, NEBULA_COLORS[i % NEBULA_COLORS.length]);
       });
       meshRef.current.instanceMatrix.needsUpdate = true;
+      if (meshRef.current.instanceColor) {
+        meshRef.current.instanceColor.needsUpdate = true;
+      }
     }
   }, [tiles]);
 
@@ -56,12 +67,12 @@ export const Board = memo(() => {
       {/* 1. Tiles (1 Draw Call) */}
       <instancedMesh ref={meshRef} args={[undefined, undefined, tiles.length]} receiveShadow>
         <planeGeometry args={[TILE_SIZE, TILE_SIZE]} />
-        <meshStandardMaterial color="#1e293b" />
+        <meshStandardMaterial color="#ffffff" />
       </instancedMesh>
 
       {/* 2. Borders (1 Draw Call) */}
       <lineSegments geometry={borderGeometry}>
-        <lineBasicMaterial color="#64748b" linewidth={1} />
+        <lineBasicMaterial color="#a78bfa" linewidth={1} />
       </lineSegments>
 
       {/* 3. Numbers (Still individual, but acceptable for text) */}
