@@ -24,7 +24,6 @@ const selectPlayerInitials = (s: ReturnType<typeof useGameStore.getState>) => s.
 const selectIsDefaultView = (s: ReturnType<typeof useGameStore.getState>) => s.isDefaultView;
 const selectTriggerCameraReset = (s: ReturnType<typeof useGameStore.getState>) => s.triggerCameraReset;
 const selectShouldFollowPlayer = (s: ReturnType<typeof useGameStore.getState>) => s.shouldFollowPlayer;
-const selectWormholeHistory = (s: ReturnType<typeof useGameStore.getState>) => s.wormholeHistory;
 const selectCameraFollowEnabled = (s: ReturnType<typeof useGameStore.getState>) => s.cameraFollowEnabled;
 const selectToggleCameraFollow = (s: ReturnType<typeof useGameStore.getState>) => s.toggleCameraFollow;
 const selectPlayerShields = (s: ReturnType<typeof useGameStore.getState>) => s.playerShields;
@@ -110,16 +109,6 @@ interface PlayerListProps {
   currentPlayerIndex: number;
 }
 
-/** Compute a momentum label from recent wormhole history for a player */
-function getMomentumIndicator(playerId: number, history: ReturnType<typeof useGameStore.getState>['wormholeHistory']): { label: string; color: string } | null {
-  const recent = history.filter(h => h.playerId === playerId).slice(-3);
-  if (recent.length === 0) return null;
-  const net = recent.reduce((sum, h) => sum + Math.sign(h.delta), 0);
-  if (net >= 2) return { label: '\u2191' + recent.filter(h => h.delta > 0).length, color: '#22d3ee' }; // up arrow + count
-  if (net <= -2) return { label: '\u2193' + recent.filter(h => h.delta < 0).length, color: '#c084fc' }; // down arrow + count
-  return null;
-}
-
 const ShieldBadge = memo(({ count }: { count: number }) => (
   <span className="flex items-center gap-1 ml-1">
     <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
@@ -139,14 +128,12 @@ ShieldBadge.displayName = 'ShieldBadge';
 const PlayerList = memo(({ currentPlayerIndex }: PlayerListProps) => {
   const players = useGameStore(selectPlayers);
   const playerInitials = useGameStore(selectPlayerInitials);
-  const wormholeHistory = useGameStore(selectWormholeHistory);
   const playerShields = useGameStore(selectPlayerShields);
   const mathModeEnabled = useGameStore(selectMathModeEnabled);
 
   return (
     <div className="absolute top-4 left-4 flex flex-col gap-3 pointer-events-auto">
       {players.map((p, idx) => {
-        const momentum = getMomentumIndicator(p.id, wormholeHistory);
         const shields = playerShields[p.id] || 0;
         return (
           <div
@@ -160,11 +147,6 @@ const PlayerList = memo(({ currentPlayerIndex }: PlayerListProps) => {
             </span>
             <span className="text-white font-mono font-bold text-base">{playerInitials[p.id] || `P${p.id + 1}`}</span>
             <span className="text-cyan-300 ml-2 text-sm">Tile: {p.position}</span>
-            {momentum && (
-              <span className="text-xs font-bold ml-1" style={{ color: momentum.color }}>
-                {momentum.label}
-              </span>
-            )}
             {mathModeEnabled && shields > 0 && <ShieldBadge count={shields} />}
           </div>
         );
