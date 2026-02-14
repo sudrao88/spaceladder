@@ -145,7 +145,8 @@ const generateDiceTextures = () => {
         hCtx.drawImage(heightCanvas, 0, 0);
 
         if (label) {
-            const fontSize = label === 'ROLL' ? 80 : 180;
+            // Further reduced font sizes as requested - Reduced from 80/180 to 50/110
+            const fontSize = label === 'ROLL' ? 50 : 110;
             const font = `900 ${fontSize}px "Iceland", sans-serif`;
             const cx = TEX_SIZE / 2;
             const cy = TEX_SIZE / 2;
@@ -162,14 +163,14 @@ const generateDiceTextures = () => {
             
             // Sub-layer: Subtle highlight rim
             cCtx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
-            cCtx.lineWidth = 10;
+            cCtx.lineWidth = 6; // Reduced line width for smaller text
             cCtx.strokeText(label, cx, cy);
 
             // Shadow for depth
             cCtx.shadowColor = 'rgba(0, 0, 0, 0.4)';
-            cCtx.shadowBlur = 12;
-            cCtx.shadowOffsetX = 3;
-            cCtx.shadowOffsetY = 3;
+            cCtx.shadowBlur = 8; // Reduced blur
+            cCtx.shadowOffsetX = 2; // Reduced offset
+            cCtx.shadowOffsetY = 2; // Reduced offset
 
             // Main Grey Text
             cCtx.fillStyle = '#444444';
