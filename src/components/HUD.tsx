@@ -181,13 +181,18 @@ const DicePanel = memo(() => {
   return (
     <div className="absolute bottom-12 right-12 flex flex-col items-center pointer-events-none">
       <div className="pointer-events-auto flex flex-col items-center">
+        {/* 
+            Container for the dice with a thin white border appearance.
+            We use a relative container with a border. 
+            The Dice component is 3D and has its own background color normally,
+            but here it sits inside this HUD element.
+        */}
         <div
           role="button"
           tabIndex={0}
           aria-label={isRolling ? 'Rolling dice...' : 'Roll dice'}
           aria-disabled={isRolling}
-          // Increased container size from h-24 w-24 to h-32 w-32
-          className="h-32 w-32 bg-transparent relative cursor-pointer hover:scale-110 transition-transform duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400 rounded-full overflow-hidden"
+          className="h-28 w-28 rounded-full border-2 border-white shadow-[0_0_15px_rgba(255,255,255,0.3)] relative cursor-pointer hover:scale-110 transition-transform duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400 flex items-center justify-center overflow-hidden"
           onClick={!isRolling ? rollDice : undefined}
           onKeyDown={handleKeyDown}
           title="Tap to Roll"
@@ -198,8 +203,9 @@ const DicePanel = memo(() => {
           */}
           <Canvas 
             camera={{ position: [0, 0, 6], fov: 45 }}
-            dpr={[1, 2]}
+            dpr={[1, 2.5]}
             gl={{ antialias: true }}
+            style={{ width: '100%', height: '100%' }}
           >
             <ambientLight intensity={0.5} />
             <pointLight position={[5, 5, 5]} intensity={1} />
