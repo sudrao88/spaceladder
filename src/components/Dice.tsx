@@ -8,15 +8,14 @@ interface DiceProps {
     isRolling: boolean;
 }
 
-// Increased resolution for sharper text
 const TEX_SIZE = 1024;
 
 /**
- * Pre-generates all possible textures for the dice (Mars base, ROLL, and 1-6).
- * This avoids expensive canvas operations and texture uploads during gameplay.
+ * Pre-generates high-fidelity procedural textures for a "White Pearl Cosmic" dice.
+ * Pushes the visual limits using multi-layered canvas effects.
  */
 const generateDiceTextures = () => {
-    // 1. Create Base Mars Assets
+    // 1. Create Base Layer (White Pearl & Marble base)
     const colorCanvas = document.createElement('canvas');
     colorCanvas.width = TEX_SIZE;
     colorCanvas.height = TEX_SIZE;
@@ -27,55 +26,100 @@ const generateDiceTextures = () => {
     heightCanvas.height = TEX_SIZE;
     const heightCtx = heightCanvas.getContext('2d')!;
 
-    // Background - Mars Red
-    colorCtx.fillStyle = '#C1440E'; 
+    // Background - Radiant White Pearl Base
+    const bgGrad = colorCtx.createRadialGradient(TEX_SIZE/2, TEX_SIZE/2, 0, TEX_SIZE/2, TEX_SIZE/2, TEX_SIZE);
+    bgGrad.addColorStop(0, '#FFFFFF'); // Pure White
+    bgGrad.addColorStop(1, '#F0F0F0'); // Soft Light Gray
+    colorCtx.fillStyle = bgGrad;
     colorCtx.fillRect(0, 0, TEX_SIZE, TEX_SIZE);
+    
     heightCtx.fillStyle = '#808080';
     heightCtx.fillRect(0, 0, TEX_SIZE, TEX_SIZE);
 
+    // Layer 1: Marble Veins (Subtle)
+    colorCtx.globalAlpha = 0.1;
+    for (let i = 0; i < 20; i++) {
+        colorCtx.beginPath();
+        colorCtx.strokeStyle = Math.random() > 0.5 ? '#E0E0E0' : '#D0D0D0';
+        colorCtx.lineWidth = Math.random() * 15 + 2;
+        let x = Math.random() * TEX_SIZE;
+        let y = Math.random() * TEX_SIZE;
+        colorCtx.moveTo(x, y);
+        for (let j = 0; j < 6; j++) {
+            x += (Math.random() - 0.5) * 400;
+            y += (Math.random() - 0.5) * 400;
+            colorCtx.lineTo(x, y);
+        }
+        colorCtx.stroke();
+    }
+    colorCtx.globalAlpha = 1.0;
+
+    // Layer 2: Stardust Sparkles (Ultra-fine)
+    for (let i = 0; i < 1000; i++) {
+        const x = Math.random() * TEX_SIZE;
+        const y = Math.random() * TEX_SIZE;
+        const size = Math.random() * 1.2 + 0.3;
+        const opacity = Math.random() * 0.7 + 0.3;
+        colorCtx.fillStyle = `rgba(180, 220, 255, ${opacity})`; // Slightly blueish sparkles for pearl look
+        colorCtx.beginPath();
+        colorCtx.arc(x, y, size, 0, Math.PI * 2);
+        colorCtx.fill();
+    }
+
     const drawCrater = (ctxC: CanvasRenderingContext2D, ctxH: CanvasRenderingContext2D, x: number, y: number, r: number, opacity: number) => {
-        // Height Map
+        // Height Map - Crisp Deep Craters
         ctxH.beginPath();
-        ctxH.arc(x, y, r * 1.15, 0, Math.PI * 2);
-        ctxH.fillStyle = '#A0A0A0';
+        ctxH.arc(x, y, r * 1.1, 0, Math.PI * 2);
+        ctxH.fillStyle = '#B0B0B0'; // Rim
         ctxH.fill();
 
         ctxH.beginPath();
         ctxH.arc(x, y, r, 0, Math.PI * 2);
         const hGrad = ctxH.createRadialGradient(x, y, 0, x, y, r);
-        hGrad.addColorStop(0, '#202020');
-        hGrad.addColorStop(0.7, '#505050');
-        hGrad.addColorStop(0.95, '#808080');
-        hGrad.addColorStop(1, '#A0A0A0');
+        hGrad.addColorStop(0, '#101010'); // Deep center
+        hGrad.addColorStop(0.7, '#606060');
+        hGrad.addColorStop(1, '#808080');
         ctxH.fillStyle = hGrad;
         ctxH.fill();
 
-        // Color Map
+        // Color Map - Clean Gray Craters for White Base
         ctxC.beginPath();
-        ctxC.arc(x, y, r * 1.1, 0, Math.PI * 2);
-        ctxC.fillStyle = `rgba(255, 200, 150, ${opacity * 0.3})`;
+        ctxC.arc(x, y, r * 1.15, 0, Math.PI * 2);
+        ctxC.fillStyle = `rgba(255, 255, 255, ${opacity * 0.4})`; // Outer rim highlight
         ctxC.fill();
 
         ctxC.beginPath();
         ctxC.arc(x, y, r, 0, Math.PI * 2);
         const cGrad = ctxC.createRadialGradient(x, y, 0, x, y, r);
-        // Darker red/brown for craters
-        const shade = Math.floor(Math.random() * 40 + 60); 
-        cGrad.addColorStop(0, `rgba(${shade}, ${shade * 0.3}, ${shade * 0.1}, ${opacity})`);
-        cGrad.addColorStop(1, `rgba(${shade + 40}, ${(shade + 40) * 0.3}, ${(shade + 40) * 0.1}, ${opacity * 0.5})`);
+        
+        // Neutral Crater Tints
+        const shade = Math.floor(Math.random() * 30 + 190);
+        cGrad.addColorStop(0, `rgba(${shade-40}, ${shade-35}, ${shade-30}, ${opacity})`); 
+        cGrad.addColorStop(0.6, `rgba(${shade}, ${shade}, ${shade}, ${opacity * 0.5})`);
+        cGrad.addColorStop(1, 'rgba(255, 255, 255, 0)');
+        
         ctxC.fillStyle = cGrad;
         ctxC.fill();
+        
+        // Add a "pearl spark" in the crater
+        if (Math.random() > 0.8) {
+            ctxC.fillStyle = '#FFFFFF';
+            ctxC.globalAlpha = 0.5;
+            ctxC.beginPath();
+            ctxC.arc(x + (Math.random()-0.5)*r, y + (Math.random()-0.5)*r, r*0.15, 0, Math.PI*2);
+            ctxC.fill();
+            ctxC.globalAlpha = 1.0;
+        }
     };
 
-    // Scaled crater count and sizes relative to new TEX_SIZE
+    // Distribute Craters
     for (let i = 0; i < 80; i++) {
         const x = Math.random() * TEX_SIZE;
         const y = Math.random() * TEX_SIZE;
-        // Scaled radius for 1024
-        const r = Math.random() * (TEX_SIZE / 12) + 16; 
-        const opacity = Math.random() * 0.4 + 0.1;
+        const r = Math.random() * (TEX_SIZE / 16) + 8; 
+        const opacity = Math.random() * 0.4 + 0.2;
 
-        const wraps = [[0,0], [TEX_SIZE,0], [-TEX_SIZE,0], [0,TEX_SIZE], [0,-TEX_SIZE], [TEX_SIZE,TEX_SIZE], [TEX_SIZE,-TEX_SIZE], [-TEX_SIZE,TEX_SIZE], [-TEX_SIZE,-TEX_SIZE]];
+        const wraps = [[0,0], [TEX_SIZE,0], [-TEX_SIZE,0], [0,TEX_SIZE], [0,-TEX_SIZE]];
         wraps.forEach(([ox, oy]) => {
             const tx = x + ox;
             const ty = y + oy;
@@ -84,18 +128,6 @@ const generateDiceTextures = () => {
             }
         });
     }
-
-    // Apply noise
-    const cData = colorCtx.getImageData(0, 0, TEX_SIZE, TEX_SIZE);
-    const hData = heightCtx.getImageData(0, 0, TEX_SIZE, TEX_SIZE);
-    for (let i = 0; i < cData.data.length; i += 4) {
-        const n = (Math.random() - 0.5) * 15;
-        const m = (Math.random() - 0.5) * 20;
-        cData.data[i] += m; cData.data[i+1] += m; cData.data[i+2] += m;
-        hData.data[i] += n; hData.data[i+1] += n; hData.data[i+2] += n;
-    }
-    colorCtx.putImageData(cData, 0, 0);
-    heightCtx.putImageData(hData, 0, 0);
 
     // 2. Generate Texture Variants
     const variants: Record<string, { color: THREE.CanvasTexture, bump: THREE.CanvasTexture }> = {};
@@ -113,23 +145,42 @@ const generateDiceTextures = () => {
         hCtx.drawImage(heightCanvas, 0, 0);
 
         if (label) {
-            // Scaled font sizes for 1024 - Scaled from 40/80 (on 512) to 80/160 (on 1024)
-            const fontSize = label === 'ROLL' ? 80 : 160;
+            const fontSize = label === 'ROLL' ? 80 : 180;
             const font = `900 ${fontSize}px "Iceland", sans-serif`;
             const cx = TEX_SIZE / 2;
             const cy = TEX_SIZE / 2;
 
+            // Height mapping for text depth
             hCtx.textAlign = 'center'; hCtx.textBaseline = 'middle'; hCtx.font = font;
+            hCtx.shadowColor = 'rgba(0,0,0,0.5)';
+            hCtx.shadowBlur = 10;
             hCtx.fillStyle = '#000000';
             hCtx.fillText(label, cx, cy);
 
+            // Grey Text with High-End Detailing
             cCtx.textAlign = 'center'; cCtx.textBaseline = 'middle'; cCtx.font = font;
             
-            // Scaled shadow offset
-            cCtx.fillStyle = 'rgba(0, 0, 0, 0.8)';
-            cCtx.fillText(label, cx + 10, cy + 10); 
-            cCtx.fillStyle = '#FFFFFF';
+            // Sub-layer: Subtle highlight rim
+            cCtx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+            cCtx.lineWidth = 10;
+            cCtx.strokeText(label, cx, cy);
+
+            // Shadow for depth
+            cCtx.shadowColor = 'rgba(0, 0, 0, 0.4)';
+            cCtx.shadowBlur = 12;
+            cCtx.shadowOffsetX = 3;
+            cCtx.shadowOffsetY = 3;
+
+            // Main Grey Text
+            cCtx.fillStyle = '#444444';
             cCtx.fillText(label, cx, cy);
+            
+            // Top highlight (Bevel effect)
+            cCtx.shadowBlur = 0;
+            cCtx.shadowOffsetX = 0;
+            cCtx.shadowOffsetY = 0;
+            cCtx.fillStyle = '#555555';
+            cCtx.fillText(label, cx - 1, cy - 1);
         }
 
         const cTex = new THREE.CanvasTexture(cCanvas);
@@ -138,7 +189,7 @@ const generateDiceTextures = () => {
         cTex.generateMipmaps = true;
         cTex.minFilter = THREE.LinearMipMapLinearFilter;
         cTex.magFilter = THREE.LinearFilter;
-        cTex.anisotropy = 16; // Max anisotropy for sharpness at angles
+        cTex.anisotropy = 16;
         
         const hTex = new THREE.CanvasTexture(hCanvas);
         hTex.wrapS = hTex.wrapT = THREE.RepeatWrapping;
@@ -151,11 +202,8 @@ const generateDiceTextures = () => {
 
 export const Dice = memo(({ value, isRolling }: DiceProps) => {
     const groupRef = useRef<THREE.Group>(null);
-    
-    // Static textures generated once and reused
     const textureVariants = useMemo(() => generateDiceTextures(), []);
     
-    // Select the active texture pair based on game state
     const activeTextures = useMemo(() => {
         if (isRolling) return textureVariants['BASE'];
         if (value === null) return textureVariants['ROLL'];
@@ -183,16 +231,15 @@ export const Dice = memo(({ value, isRolling }: DiceProps) => {
 
     return (
         <group ref={groupRef}>
-            {/* Reduced segments from 64 to 48 for better mobile performance without visual loss */}
-            <Sphere args={[3.2, 48, 48]}>
+            <Sphere args={[3.2, 64, 64]}> 
                 <meshStandardMaterial 
                     map={activeTextures.color}
                     bumpMap={activeTextures.bump}
-                    bumpScale={0.2} 
-                    roughness={0.6} 
-                    metalness={0.0}
-                    emissive="#FF4500"
-                    emissiveIntensity={0.15} 
+                    bumpScale={0.1} 
+                    roughness={0.08} // Glassy pearl finish
+                    metalness={0.15} // Pearlescent sheen
+                    emissive="#FFFFFF" // White glow
+                    emissiveIntensity={0.1}
                 />
             </Sphere>
         </group>

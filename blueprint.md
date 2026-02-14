@@ -35,6 +35,8 @@ Spaceladder is an interactive, space-themed board game built with React. This do
 ### Visual Enhancements
 - **Vibrant Cosmic Tiles:** Updated the board tiles with a bright, space-themed palette featuring Electric Blue, Electric Purple, Vivid Cyan, and Hot Pink.
 - **High-Contrast Board Numbers:** Changed tile numbers and borders to crisp white for better legibility against the new vibrant backgrounds.
+- **White Pearl Cosmic Dice:** Pushed the visual limits of the dice with a high-fidelity "White Pearl" theme. Features procedural marble veining, ultra-fine stardust sparkles, high-resolution craters, and a glassy/metallic finish.
+- **Sharpened Visuals:** Increased texture resolution for the dice to 1024x1024 and bumped the global Canvas DPR to 2.5 for crisp rendering on high-density displays.
 
 ### Collision System & UI Fixes
 - **Collision Handling:** Added a `CollisionDialog` to manage what happens when two players end up on the same tile. One player "holds position" while the other is "ejected" back to a previous tile.
