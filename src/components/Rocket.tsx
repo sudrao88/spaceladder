@@ -41,7 +41,7 @@ function getEmojiTexture(emoji: string): THREE.CanvasTexture {
   }
   const tex = new THREE.CanvasTexture(canvas);
   tex.colorSpace = THREE.SRGBColorSpace;
-  // Use Linear filtering for smoother scaling, or Nearest if pixel art style is preferred (using Linear for emojis)
+  tex.generateMipmaps = true;
   tex.minFilter = THREE.LinearMipMapLinearFilter;
   tex.magFilter = THREE.LinearFilter;
   tex.anisotropy = 16; // Max anisotropy for sharpness at angles

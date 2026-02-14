@@ -8,8 +8,8 @@ interface DiceProps {
     isRolling: boolean;
 }
 
-// Increased resolution for sharper text
-const TEX_SIZE = 1024;
+// Optimized resolution for mobile
+const TEX_SIZE = 512;
 
 /**
  * Pre-generates all possible textures for the dice (Mars base, ROLL, and 1-6).
@@ -112,9 +112,7 @@ const generateDiceTextures = () => {
         hCtx.drawImage(heightCanvas, 0, 0);
 
         if (label) {
-            // Scaled font sizes for 1024x1024 texture (double the previous values relative to canvas size)
-            // Previous: 30/60 on 512 -> Now: 60/120 on 1024 to maintain relative visual size but higher resolution
-            const fontSize = label === 'ROLL' ? 60 : 120; 
+            const fontSize = label === 'ROLL' ? 70 : 140;
             const font = `900 ${fontSize}px "Iceland", sans-serif`;
             const cx = TEX_SIZE / 2;
             const cy = TEX_SIZE / 2;
@@ -125,17 +123,16 @@ const generateDiceTextures = () => {
 
             cCtx.textAlign = 'center'; cCtx.textBaseline = 'middle'; cCtx.font = font;
             
-            // Scaled shadow offset
-            cCtx.fillStyle = 'rgba(0, 0, 0, 0.8)'; // Shadow color
-            cCtx.fillText(label, cx + 6, cy + 6); // Scaled offset for shadow
-            cCtx.fillStyle = '#FFFFFF'; // Main text color set to White
+            cCtx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+            cCtx.fillText(label, cx + 5, cy + 5);
+            cCtx.fillStyle = '#FFFFFF';
             cCtx.fillText(label, cx, cy);
         }
 
         const cTex = new THREE.CanvasTexture(cCanvas);
         cTex.colorSpace = THREE.SRGBColorSpace;
         cTex.wrapS = cTex.wrapT = THREE.RepeatWrapping;
-        // Improve texture filtering for sharpness
+        cTex.generateMipmaps = true;
         cTex.minFilter = THREE.LinearMipMapLinearFilter;
         cTex.magFilter = THREE.LinearFilter;
         cTex.anisotropy = 16; // Max anisotropy for sharpness at angles

@@ -62,7 +62,7 @@ const StarfieldShaderMaterial = {
 const Planet = memo(() => {
   const planetRef = useRef<THREE.Group>(null);
   
-  useFrame((state, delta) => {
+  useFrame((_state, delta) => {
     if (planetRef.current) {
       // Restored previous rotation speed
       planetRef.current.rotation.y += delta * 0.05;
@@ -121,7 +121,7 @@ Planet.displayName = 'Planet';
 const LargeCraterPlanet = memo(() => {
     const planetRef = useRef<THREE.Group>(null);
     
-    useFrame((state, delta) => {
+    useFrame((_state, delta) => {
       if (planetRef.current) {
         // Rotate in OPPOSITE direction
         planetRef.current.rotation.y -= delta * 0.03; 

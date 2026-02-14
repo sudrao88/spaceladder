@@ -19,8 +19,8 @@ const CAMERA_ROTATION: [number, number, number] = [-Math.PI / 2, 0, 0];
 const AMBIENT_INTENSITY = 1;
 const DIR_LIGHT_POS: [number, number, number] = [5, 10, 5];
 const DIR_LIGHT_INTENSITY = 0.5;
-// Increased max DPR from 1.5 to 2.5 to sharpen visuals on high-DPI screens when zoomed in
-const CANVAS_DPR: [number, number] = [1, 2.5];
+// Capped DPR to 2 to balance sharpness on high-DPI screens with mobile performance
+const CANVAS_DPR: [number, number] = [1, 2];
 
 // Separate scene contents to isolate 3D render tree from HUD re-renders
 const GameScene = memo(() => {
