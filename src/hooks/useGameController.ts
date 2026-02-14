@@ -44,6 +44,7 @@ function computeWormholeParams(
   player: Player,
   allPlayers: Player[],
   history: WormholeEvent[],
+  turnNumber: number,
 ): WormholeParams {
   const positions = allPlayers.map(p => p.position);
   const avgPosition = positions.reduce((a, b) => a + b, 0) / positions.length;
@@ -86,7 +87,21 @@ function computeWormholeParams(
   if (isLateGame) triggerChance += 0.08;
   if (isEndGame) triggerChance += 0.07;
 
-  triggerChance = clamp(triggerChance, 0.15, 0.55);
+  // ============================================================
+  // EARLY GAME BOOST: more wormholes, more boosts in first rounds
+  // Creates exciting opening moments without lasting unfairness.
+  // Decays linearly over the first 3 full rounds (turns 0..3*N-1).
+  // ============================================================
+  const numPlayers = allPlayers.length;
+  const earlyGameTurns = numPlayers * 3; // 3 full rounds
+  const earlyFactor = turnNumber < earlyGameTurns
+    ? 1 - turnNumber / earlyGameTurns // 1.0 → 0.0 linear decay
+    : 0;
+
+  // Boost trigger chance: up to +22% at turn 0, tapering to 0
+  triggerChance += earlyFactor * 0.22;
+
+  triggerChance = clamp(triggerChance, 0.15, 0.60);
 
   // ============================================================
   // FORWARD BIAS: base 50%, rubber-banded by position & momentum
@@ -103,6 +118,9 @@ function computeWormholeParams(
   if (isTrailing) {
     forwardBias += packSpread * 0.20;
   }
+
+  // Early game: tilt wormholes toward boosts (up to +20% at turn 0)
+  forwardBias += earlyFactor * 0.20;
 
   forwardBias = clamp(forwardBias, 0.20, 0.82);
 
@@ -124,6 +142,12 @@ function computeWormholeParams(
     const penalty = Math.floor(packSpread * 14);
     bwdMin += Math.floor(penalty * 0.5);
     bwdMax += penalty;
+  }
+
+  // Early game: slightly bigger forward jumps for more exciting launches
+  if (earlyFactor > 0) {
+    fwdMin += Math.floor(earlyFactor * 3);
+    fwdMax += Math.floor(earlyFactor * 6);
   }
 
   // Late game: slightly bigger swings
@@ -193,9 +217,9 @@ export const GameController = () => {
     }
 
     // Read full game state for dynamic computation
-    const { players, wormholeHistory } = useGameStore.getState();
+    const { players, wormholeHistory, turnNumber } = useGameStore.getState();
 
-    const params = computeWormholeParams(player, players, wormholeHistory);
+    const params = computeWormholeParams(player, players, wormholeHistory, turnNumber);
 
     // Roll for trigger
     if (secureRandom() >= params.triggerChance) {

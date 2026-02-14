@@ -113,6 +113,9 @@ interface GameState {
   pendingMathChallenge: PendingMathChallenge | null;
   mathSettings: MathSettings;
 
+  // Turn tracking
+  turnNumber: number;
+
   // Camera State
   isDefaultView: boolean;
   shouldResetCamera: boolean;
@@ -173,6 +176,7 @@ export const useGameStore = create<GameState>()(
       playerShields: {},
       pendingMathChallenge: null,
       mathSettings: DEFAULT_MATH_SETTINGS,
+      turnNumber: 0,
       isDefaultView: true,
       shouldResetCamera: false,
       shouldFollowPlayer: false,
@@ -205,6 +209,7 @@ export const useGameStore = create<GameState>()(
           mathModeEnabled: mathMode ?? false,
           playerShields: {},
           pendingMathChallenge: null,
+          turnNumber: 0,
         });
       },
 
@@ -467,16 +472,17 @@ export const useGameStore = create<GameState>()(
         const nextIndex = (currentPlayerIndex + 1) % players.length;
         // RESET TURN PROCESSING AND DICE HERE
         // Also reset camera to default view for the next player's roll
-        set({ 
-            currentPlayerIndex: nextIndex, 
-            diceValue: null, 
+        set((state) => ({
+            currentPlayerIndex: nextIndex,
+            diceValue: null,
             isTurnProcessing: false,
+            turnNumber: state.turnNumber + 1,
             shouldFollowPlayer: false,
             shouldResetCamera: true, // Trigger camera reset to default
             isDefaultView: true
-        });
+        }));
       },
-      
+
       resetGame: () => {
           turnEpoch++;
           set({
@@ -492,6 +498,7 @@ export const useGameStore = create<GameState>()(
             playerShields: {},
             pendingMathChallenge: null,
             currentPlayerIndex: 0,
+            turnNumber: 0,
             isRolling: false,
             isTurnProcessing: false,
             shouldResetCamera: true,
@@ -570,6 +577,7 @@ export const useGameStore = create<GameState>()(
           winner: state.winner,
           playerInitials: state.playerInitials,
           wormholeHistory: state.wormholeHistory,
+          turnNumber: state.turnNumber,
           cameraFollowEnabled: state.cameraFollowEnabled,
           mathModeEnabled: state.mathModeEnabled,
           playerShields: state.playerShields,
