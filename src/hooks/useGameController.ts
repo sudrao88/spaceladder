@@ -37,6 +37,83 @@ interface WormholeParams {
 }
 
 /**
+ * Centralized balance configuration for all wormhole tuning knobs.
+ * Adjusting values here controls the game's rubber-banding behaviour,
+ * pacing, and overall competitiveness.
+ */
+const WORMHOLE_CONFIG = {
+  // --- Positional detection thresholds ---
+  // Minimum packSpread before a player is considered leading/trailing.
+  // Lower values detect smaller gaps, activating rubber-banding sooner.
+  leaderSpreadThreshold: 0.05,
+  trailingSpreadThreshold: 0.06,
+
+  // --- Trigger chance ---
+  baseTrigger: 0.31,
+  leaderTriggerMultiplier: 0.20,  // extra trigger per unit of packSpread
+  lateGameTriggerBonus: 0.10,
+  endGameTriggerBonus: 0.10,
+  triggerClampMin: 0.15,
+  triggerClampMax: 0.60,
+
+  // --- Early game (exciting openings) ---
+  earlyGameRounds: 3,             // rounds of boosted wormhole activity
+  earlyTriggerBonus: 0.25,        // max extra trigger chance at turn 0
+  earlyForwardBiasBonus: 0.05,    // max extra forward tilt at turn 0
+  earlyFwdMinBonus: 1,
+  earlyFwdMaxBonus: 3,
+  earlyBwdMinBonus: 1,
+  earlyBwdMaxBonus: 2,
+
+  // --- Post-early catchup window ---
+  catchupRounds: 4,               // rounds after early window
+  catchupTriggerBonus: 0.12,
+  catchupLeadGapBonus: 0.15,      // extra leadGap strength during catchup
+
+  // --- Forward bias (direction of wormhole jumps) ---
+  baseForwardBias: 0.50,
+  leadGapCoeff: 0.50,             // how strongly leaders get pulled back
+  momentumCoeff: 0.22,            // how strongly lucky streaks get corrected
+  trailingForwardBiasMult: 0.28,  // extra forward bias for trailing players
+  forwardBiasClampMin: 0.20,
+  forwardBiasClampMax: 0.82,
+
+  // --- Jump magnitudes ---
+  baseFwdMin: 5,
+  baseFwdMax: 15,
+  baseBwdMin: 3,
+  baseBwdMax: 10,
+  magnitudeSpreadThreshold: 0.10, // packSpread needed for bonus magnitudes
+  trailingBonusMult: 22,          // forward boost scaling for trailing player
+  leaderPenaltyMult: 20,          // backward setback scaling for leader
+  lateGameMagnitudeBonus: 4,
+
+  // --- Drastic jumps ---
+  baseDrasticChance: 0.14,
+  leaderDrasticBonus: 0.10,
+  trailingDrasticBonus: 0.10,
+  endGameDrasticBonus: 0.05,
+  drasticForwardOffset: 2,        // added to fwdMax for drastic min
+  drasticForwardSpan: 22,         // added to fwdMax for drastic max
+  drasticBackwardOffset: 2,       // added to bwdMax for drastic min
+  drasticBackwardSpan: 18,        // added to bwdMax for drastic max
+
+  // --- Special events (slingshot & gravity well) ---
+  specialSpreadThreshold: 0.10,   // packSpread needed for special events
+  slingshotMult: 0.38,
+  slingshotCap: 0.22,
+  slingshotColdStreakBonus: 0.08,  // extra chance when momentum < -0.3
+  gravityWellMult: 0.35,
+  gravityWellCap: 0.20,
+  gravityWellHotStreakBonus: 0.08, // extra chance when momentum > 0.3
+  momentumStreakThreshold: 0.3,    // |momentum| needed for streak bonuses
+
+  // --- Progress zone thresholds ---
+  lateGameThreshold: 65,
+  endGameThreshold: 85,
+} as const;
+
+/**
  * Compute dynamic wormhole parameters based on game state.
  * This is the core "rubber-banding" algorithm that keeps games competitive.
  */
@@ -46,6 +123,7 @@ function computeWormholeParams(
   history: WormholeEvent[],
   turnNumber: number,
 ): WormholeParams {
+  const cfg = WORMHOLE_CONFIG;
   const positions = allPlayers.map(p => p.position);
   const avgPosition = positions.reduce((a, b) => a + b, 0) / positions.length;
   const maxPosition = Math.max(...positions);
@@ -65,138 +143,136 @@ function computeWormholeParams(
     ? playerHistory.reduce((sum, h) => sum + Math.sign(h.delta), 0) / playerHistory.length
     : 0; // -1 (all glitches) to +1 (all boosts)
 
-  // Positional flags — lower thresholds detect leads sooner for faster correction
-  const isLeader = player.position === maxPosition && packSpread > 0.05;
-  const isTrailing = player.position === minPosition && packSpread > 0.06;
+  // Pure positional checks (who is first / last)
+  const isInFirst = player.position === maxPosition;
+  const isInLast = player.position === minPosition;
+
+  // Spread-gated flags: only consider a player leading/trailing when the
+  // pack is meaningfully separated. This prevents rubber-banding from
+  // firing when everyone is bunched together.
+  const isLeader = isInFirst && packSpread > cfg.leaderSpreadThreshold;
+  const isTrailing = isInLast && packSpread > cfg.trailingSpreadThreshold;
 
   // Progress zone
-  const isLateGame = player.position > 65;
-  const isEndGame = player.position > 85;
+  const isLateGame = player.position > cfg.lateGameThreshold;
+  const isEndGame = player.position > cfg.endGameThreshold;
 
   // ============================================================
-  // TRIGGER CHANCE: base 31%, adjusted by position and game phase
+  // TRIGGER CHANCE
   // ============================================================
-  let triggerChance = 0.31;
+  let triggerChance: number = cfg.baseTrigger;
 
   // Leaders face more wormholes when they're pulling away
   if (isLeader) {
-    triggerChance += packSpread * 0.20; // up to +20% when far ahead
+    triggerChance += packSpread * cfg.leaderTriggerMultiplier;
   }
 
   // Late game: more wormholes for everyone (tension!)
-  if (isLateGame) triggerChance += 0.10;
-  if (isEndGame) triggerChance += 0.10;
+  if (isLateGame) triggerChance += cfg.lateGameTriggerBonus;
+  if (isEndGame) triggerChance += cfg.endGameTriggerBonus;
 
   // ============================================================
   // EARLY GAME BOOST: more wormholes in the first rounds for
-  // exciting openings. Decays linearly over 3 full rounds.
+  // exciting openings. Decays linearly over earlyGameRounds.
   // A post-early "catchup" window then strengthens rubber-banding
   // so any early separation corrects quickly.
   // ============================================================
   const numPlayers = allPlayers.length;
-  const earlyGameTurns = numPlayers * 3; // 3 full rounds
+  const earlyGameTurns = numPlayers * cfg.earlyGameRounds;
   const earlyFactor = turnNumber < earlyGameTurns
     ? 1 - turnNumber / earlyGameTurns // 1.0 → 0.0 linear decay
     : 0;
 
-  // Post-early catchup window: 4 rounds after early window ends
+  // Post-early catchup window
   const catchupStart = earlyGameTurns;
-  const catchupEnd = catchupStart + numPlayers * 4;
+  const catchupEnd = catchupStart + numPlayers * cfg.catchupRounds;
   const catchupFactor = turnNumber >= catchupStart && turnNumber < catchupEnd
     ? 1 - (turnNumber - catchupStart) / (catchupEnd - catchupStart)
     : 0;
 
-  // Boost trigger chance: up to +25% at turn 0, tapering to 0
-  triggerChance += earlyFactor * 0.25;
-  // Catchup: slightly elevated trigger rate so rubber-banding gets more chances
-  triggerChance += catchupFactor * 0.12;
+  triggerChance += earlyFactor * cfg.earlyTriggerBonus;
+  triggerChance += catchupFactor * cfg.catchupTriggerBonus;
 
-  triggerChance = clamp(triggerChance, 0.15, 0.60);
+  triggerChance = clamp(triggerChance, cfg.triggerClampMin, cfg.triggerClampMax);
 
   // ============================================================
-  // FORWARD BIAS: base 50%, rubber-banded by position & momentum
+  // FORWARD BIAS: rubber-banded by position & momentum
   // ============================================================
-  let forwardBias = 0.50;
+  let forwardBias: number = cfg.baseForwardBias;
 
   // Leading players get pulled back (less forward, more backward)
-  // Catchup window: strengthen the leadGap pull to correct early spread faster
-  const leadGapCoeff = 0.50 + catchupFactor * 0.15;
+  const leadGapCoeff = cfg.leadGapCoeff + catchupFactor * cfg.catchupLeadGapBonus;
   forwardBias -= leadGap * leadGapCoeff;
 
   // Counter momentum: lucky streaks get corrected
-  forwardBias -= momentum * 0.22;
+  forwardBias -= momentum * cfg.momentumCoeff;
 
   // Trailing players get extra forward bias when pack is spread
   if (isTrailing) {
-    forwardBias += packSpread * 0.28;
+    forwardBias += packSpread * cfg.trailingForwardBiasMult;
   }
 
-  // Early game: mild tilt toward boosts (up to +5% at turn 0)
-  forwardBias += earlyFactor * 0.05;
+  // Early game: mild tilt toward boosts
+  forwardBias += earlyFactor * cfg.earlyForwardBiasBonus;
 
-  forwardBias = clamp(forwardBias, 0.20, 0.82);
+  forwardBias = clamp(forwardBias, cfg.forwardBiasClampMin, cfg.forwardBiasClampMax);
 
   // ============================================================
   // JUMP MAGNITUDES: scaled by pack spread and game phase
   // ============================================================
-  let fwdMin = 5, fwdMax = 15;
-  let bwdMin = 3, bwdMax = 10;
+  let fwdMin = cfg.baseFwdMin, fwdMax = cfg.baseFwdMax;
+  let bwdMin = cfg.baseBwdMin, bwdMax = cfg.baseBwdMax;
 
   // Trailing players get bigger boosts proportional to how spread the pack is
-  if (isTrailing && packSpread > 0.10) {
-    const bonus = Math.floor(packSpread * 22);
+  if (isTrailing && packSpread > cfg.magnitudeSpreadThreshold) {
+    const bonus = Math.floor(packSpread * cfg.trailingBonusMult);
     fwdMin += Math.floor(bonus * 0.5);
     fwdMax += bonus;
   }
 
   // Leaders get bigger setbacks proportional to their lead
-  if (isLeader && packSpread > 0.10) {
-    const penalty = Math.floor(packSpread * 20);
+  if (isLeader && packSpread > cfg.magnitudeSpreadThreshold) {
+    const penalty = Math.floor(packSpread * cfg.leaderPenaltyMult);
     bwdMin += Math.floor(penalty * 0.5);
     bwdMax += penalty;
   }
 
   // Early game: bigger jumps in both directions for more dramatic openings
   if (earlyFactor > 0) {
-    fwdMin += Math.floor(earlyFactor * 1);
-    fwdMax += Math.floor(earlyFactor * 3);
-    bwdMin += Math.floor(earlyFactor * 1);
-    bwdMax += Math.floor(earlyFactor * 2);
+    fwdMin += Math.floor(earlyFactor * cfg.earlyFwdMinBonus);
+    fwdMax += Math.floor(earlyFactor * cfg.earlyFwdMaxBonus);
+    bwdMin += Math.floor(earlyFactor * cfg.earlyBwdMinBonus);
+    bwdMax += Math.floor(earlyFactor * cfg.earlyBwdMaxBonus);
   }
 
   // Late game: slightly bigger swings
   if (isLateGame) {
-    fwdMax += 4;
-    bwdMax += 4;
+    fwdMax += cfg.lateGameMagnitudeBonus;
+    bwdMax += cfg.lateGameMagnitudeBonus;
   }
 
   // ============================================================
   // DRASTIC JUMP CHANCE: rare big swings, biased by position
   // ============================================================
-  let drasticChance = 0.14;
-  if (isLeader) drasticChance += 0.10; // leaders face more drastic setbacks
-  if (isTrailing) drasticChance += 0.10; // trailing players get more drastic boosts
-  if (isEndGame) drasticChance += 0.05;
+  let drasticChance = cfg.baseDrasticChance;
+  if (isLeader) drasticChance += cfg.leaderDrasticBonus;
+  if (isTrailing) drasticChance += cfg.trailingDrasticBonus;
+  if (isEndGame) drasticChance += cfg.endGameDrasticBonus;
 
   // ============================================================
   // SPECIAL EVENTS: Slingshot (trailing) & Gravity Well (leader)
   // ============================================================
-  // Activate with smaller gaps for more frequent lead-changing events
   let slingshotChance = 0;
   let gravityWellChance = 0;
 
-  if (isTrailing && packSpread > 0.10) {
-    // Trailing player: chance to slingshot near the leader
-    slingshotChance = clamp(packSpread * 0.38, 0, 0.22);
-    // Boost if on a cold streak
-    if (momentum < -0.3) slingshotChance += 0.08;
+  if (isTrailing && packSpread > cfg.specialSpreadThreshold) {
+    slingshotChance = clamp(packSpread * cfg.slingshotMult, 0, cfg.slingshotCap);
+    if (momentum < -cfg.momentumStreakThreshold) slingshotChance += cfg.slingshotColdStreakBonus;
   }
 
-  if (isLeader && packSpread > 0.10) {
-    // Leader: chance to get pulled back toward the pack
-    gravityWellChance = clamp(packSpread * 0.35, 0, 0.20);
-    // Boost if on a hot streak
-    if (momentum > 0.3) gravityWellChance += 0.08;
+  if (isLeader && packSpread > cfg.specialSpreadThreshold) {
+    gravityWellChance = clamp(packSpread * cfg.gravityWellMult, 0, cfg.gravityWellCap);
+    if (momentum > cfg.momentumStreakThreshold) gravityWellChance += cfg.gravityWellHotStreakBonus;
   }
 
   return {
@@ -205,8 +281,8 @@ function computeWormholeParams(
     forwardRange: [fwdMin, fwdMax],
     backwardRange: [bwdMin, bwdMax],
     drasticChance,
-    drasticForwardRange: [fwdMax + 2, fwdMax + 22],
-    drasticBackwardRange: [bwdMax + 2, bwdMax + 18],
+    drasticForwardRange: [fwdMax + cfg.drasticForwardOffset, fwdMax + cfg.drasticForwardSpan],
+    drasticBackwardRange: [bwdMax + cfg.drasticBackwardOffset, bwdMax + cfg.drasticBackwardSpan],
     slingshotChance,
     gravityWellChance,
   };
