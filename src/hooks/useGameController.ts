@@ -65,18 +65,18 @@ function computeWormholeParams(
     ? playerHistory.reduce((sum, h) => sum + Math.sign(h.delta), 0) / playerHistory.length
     : 0; // -1 (all glitches) to +1 (all boosts)
 
-  // Positional flags
-  const isLeader = player.position === maxPosition && packSpread > 0.08;
-  const isTrailing = player.position === minPosition && packSpread > 0.10;
+  // Positional flags — lower thresholds detect leads sooner for faster correction
+  const isLeader = player.position === maxPosition && packSpread > 0.05;
+  const isTrailing = player.position === minPosition && packSpread > 0.06;
 
   // Progress zone
   const isLateGame = player.position > 65;
   const isEndGame = player.position > 85;
 
   // ============================================================
-  // TRIGGER CHANCE: base 28%, adjusted by position and game phase
+  // TRIGGER CHANCE: base 31%, adjusted by position and game phase
   // ============================================================
-  let triggerChance = 0.28;
+  let triggerChance = 0.31;
 
   // Leaders face more wormholes when they're pulling away
   if (isLeader) {
@@ -84,8 +84,8 @@ function computeWormholeParams(
   }
 
   // Late game: more wormholes for everyone (tension!)
-  if (isLateGame) triggerChance += 0.08;
-  if (isEndGame) triggerChance += 0.07;
+  if (isLateGame) triggerChance += 0.10;
+  if (isEndGame) triggerChance += 0.10;
 
   // ============================================================
   // EARLY GAME BOOST: more wormholes in the first rounds for
@@ -120,15 +120,15 @@ function computeWormholeParams(
 
   // Leading players get pulled back (less forward, more backward)
   // Catchup window: strengthen the leadGap pull to correct early spread faster
-  const leadGapCoeff = 0.35 + catchupFactor * 0.15;
+  const leadGapCoeff = 0.50 + catchupFactor * 0.15;
   forwardBias -= leadGap * leadGapCoeff;
 
   // Counter momentum: lucky streaks get corrected
-  forwardBias -= momentum * 0.18;
+  forwardBias -= momentum * 0.22;
 
   // Trailing players get extra forward bias when pack is spread
   if (isTrailing) {
-    forwardBias += packSpread * 0.20;
+    forwardBias += packSpread * 0.28;
   }
 
   // Early game: mild tilt toward boosts (up to +5% at turn 0)
@@ -139,19 +139,19 @@ function computeWormholeParams(
   // ============================================================
   // JUMP MAGNITUDES: scaled by pack spread and game phase
   // ============================================================
-  let fwdMin = 4, fwdMax = 14;
+  let fwdMin = 5, fwdMax = 15;
   let bwdMin = 3, bwdMax = 10;
 
   // Trailing players get bigger boosts proportional to how spread the pack is
-  if (isTrailing && packSpread > 0.15) {
-    const bonus = Math.floor(packSpread * 18);
+  if (isTrailing && packSpread > 0.10) {
+    const bonus = Math.floor(packSpread * 22);
     fwdMin += Math.floor(bonus * 0.5);
     fwdMax += bonus;
   }
 
   // Leaders get bigger setbacks proportional to their lead
-  if (isLeader && packSpread > 0.15) {
-    const penalty = Math.floor(packSpread * 14);
+  if (isLeader && packSpread > 0.10) {
+    const penalty = Math.floor(packSpread * 20);
     bwdMin += Math.floor(penalty * 0.5);
     bwdMax += penalty;
   }
@@ -173,30 +173,30 @@ function computeWormholeParams(
   // ============================================================
   // DRASTIC JUMP CHANCE: rare big swings, biased by position
   // ============================================================
-  let drasticChance = 0.10;
-  if (isLeader) drasticChance += 0.08; // leaders face more drastic setbacks
-  if (isTrailing) drasticChance += 0.08; // trailing players get more drastic boosts
+  let drasticChance = 0.14;
+  if (isLeader) drasticChance += 0.10; // leaders face more drastic setbacks
+  if (isTrailing) drasticChance += 0.10; // trailing players get more drastic boosts
   if (isEndGame) drasticChance += 0.05;
 
   // ============================================================
   // SPECIAL EVENTS: Slingshot (trailing) & Gravity Well (leader)
   // ============================================================
-  // Only activate when the pack is meaningfully spread
+  // Activate with smaller gaps for more frequent lead-changing events
   let slingshotChance = 0;
   let gravityWellChance = 0;
 
-  if (isTrailing && packSpread > 0.18) {
+  if (isTrailing && packSpread > 0.10) {
     // Trailing player: chance to slingshot near the leader
-    slingshotChance = clamp(packSpread * 0.25, 0, 0.14);
+    slingshotChance = clamp(packSpread * 0.38, 0, 0.22);
     // Boost if on a cold streak
-    if (momentum < -0.3) slingshotChance += 0.06;
+    if (momentum < -0.3) slingshotChance += 0.08;
   }
 
-  if (isLeader && packSpread > 0.18) {
+  if (isLeader && packSpread > 0.10) {
     // Leader: chance to get pulled back toward the pack
-    gravityWellChance = clamp(packSpread * 0.22, 0, 0.12);
+    gravityWellChance = clamp(packSpread * 0.35, 0, 0.20);
     // Boost if on a hot streak
-    if (momentum > 0.3) gravityWellChance += 0.06;
+    if (momentum > 0.3) gravityWellChance += 0.08;
   }
 
   return {
