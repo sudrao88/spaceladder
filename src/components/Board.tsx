@@ -6,11 +6,11 @@ import { getBoardTiles, TILE_SIZE } from '../utils/boardUtils';
 const BOARD_OFFSET_Y = 0;
 const TILE_HALF = TILE_SIZE / 2;
 
-const NEBULA_COLORS = [
-  new THREE.Color('#581c87'), // purple
-  new THREE.Color('#1e3a8a'), // blue
-  new THREE.Color('#0e7490'), // cyan
-  new THREE.Color('#9d174d'), // pink
+const BRIGHT_COSMIC_COLORS = [
+  new THREE.Color('#0066ff'), // Bright Electric Blue
+  new THREE.Color('#7000ff'), // Electric Purple
+  new THREE.Color('#00f2ff'), // Vivid Cyan
+  new THREE.Color('#ff00e5'), // Hot Pink
 ];
 
 export const Board = memo(() => {
@@ -26,7 +26,7 @@ export const Board = memo(() => {
         tempObject.rotation.set(-Math.PI / 2, 0, 0);
         tempObject.updateMatrix();
         meshRef.current!.setMatrixAt(i, tempObject.matrix);
-        meshRef.current!.setColorAt(i, NEBULA_COLORS[i % NEBULA_COLORS.length]);
+        meshRef.current!.setColorAt(i, BRIGHT_COSMIC_COLORS[i % BRIGHT_COSMIC_COLORS.length]);
       });
       meshRef.current.instanceMatrix.needsUpdate = true;
       if (meshRef.current.instanceColor) {
@@ -67,12 +67,12 @@ export const Board = memo(() => {
       {/* 1. Tiles (1 Draw Call) */}
       <instancedMesh ref={meshRef} args={[undefined, undefined, tiles.length]} receiveShadow>
         <planeGeometry args={[TILE_SIZE, TILE_SIZE]} />
-        <meshStandardMaterial color="#ffffff" />
+        <meshStandardMaterial color="#ffffff" transparent opacity={0.9} />
       </instancedMesh>
 
       {/* 2. Borders (1 Draw Call) */}
       <lineSegments geometry={borderGeometry}>
-        <lineBasicMaterial color="#a78bfa" linewidth={1} />
+        <lineBasicMaterial color="#ffffff" linewidth={1} transparent opacity={0.3} />
       </lineSegments>
 
       {/* 3. Numbers (Still individual, but acceptable for text) */}
@@ -82,7 +82,7 @@ export const Board = memo(() => {
           position={[tile.x, BOARD_OFFSET_Y + 0.02, tile.z]}
           rotation={[-Math.PI / 2, 0, 0]}
           fontSize={0.25}
-          color="#94a3b8"
+          color="#ffffff"
           anchorX="center"
           anchorY="middle"
         >
