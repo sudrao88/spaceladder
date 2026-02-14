@@ -88,9 +88,10 @@ function computeWormholeParams(
   if (isEndGame) triggerChance += 0.07;
 
   // ============================================================
-  // EARLY GAME BOOST: more wormholes, more boosts in first rounds
-  // Creates exciting opening moments without lasting unfairness.
-  // Decays linearly over the first 3 full rounds (turns 0..3*N-1).
+  // EARLY GAME BOOST: more wormholes in the first rounds for
+  // exciting openings. Decays linearly over 3 full rounds.
+  // A post-early "catchup" window then strengthens rubber-banding
+  // so any early separation corrects quickly.
   // ============================================================
   const numPlayers = allPlayers.length;
   const earlyGameTurns = numPlayers * 3; // 3 full rounds
@@ -98,8 +99,17 @@ function computeWormholeParams(
     ? 1 - turnNumber / earlyGameTurns // 1.0 → 0.0 linear decay
     : 0;
 
-  // Boost trigger chance: up to +22% at turn 0, tapering to 0
-  triggerChance += earlyFactor * 0.22;
+  // Post-early catchup window: 4 rounds after early window ends
+  const catchupStart = earlyGameTurns;
+  const catchupEnd = catchupStart + numPlayers * 4;
+  const catchupFactor = turnNumber >= catchupStart && turnNumber < catchupEnd
+    ? 1 - (turnNumber - catchupStart) / (catchupEnd - catchupStart)
+    : 0;
+
+  // Boost trigger chance: up to +25% at turn 0, tapering to 0
+  triggerChance += earlyFactor * 0.25;
+  // Catchup: slightly elevated trigger rate so rubber-banding gets more chances
+  triggerChance += catchupFactor * 0.12;
 
   triggerChance = clamp(triggerChance, 0.15, 0.60);
 
@@ -109,7 +119,9 @@ function computeWormholeParams(
   let forwardBias = 0.50;
 
   // Leading players get pulled back (less forward, more backward)
-  forwardBias -= leadGap * 0.35;
+  // Catchup window: strengthen the leadGap pull to correct early spread faster
+  const leadGapCoeff = 0.35 + catchupFactor * 0.15;
+  forwardBias -= leadGap * leadGapCoeff;
 
   // Counter momentum: lucky streaks get corrected
   forwardBias -= momentum * 0.18;
@@ -119,8 +131,8 @@ function computeWormholeParams(
     forwardBias += packSpread * 0.20;
   }
 
-  // Early game: tilt wormholes toward boosts (up to +20% at turn 0)
-  forwardBias += earlyFactor * 0.20;
+  // Early game: mild tilt toward boosts (up to +5% at turn 0)
+  forwardBias += earlyFactor * 0.05;
 
   forwardBias = clamp(forwardBias, 0.20, 0.82);
 
@@ -144,10 +156,12 @@ function computeWormholeParams(
     bwdMax += penalty;
   }
 
-  // Early game: slightly bigger forward jumps for more exciting launches
+  // Early game: bigger jumps in both directions for more dramatic openings
   if (earlyFactor > 0) {
-    fwdMin += Math.floor(earlyFactor * 3);
-    fwdMax += Math.floor(earlyFactor * 6);
+    fwdMin += Math.floor(earlyFactor * 1);
+    fwdMax += Math.floor(earlyFactor * 3);
+    bwdMin += Math.floor(earlyFactor * 1);
+    bwdMax += Math.floor(earlyFactor * 2);
   }
 
   // Late game: slightly bigger swings
