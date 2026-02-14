@@ -78,23 +78,23 @@ const Planet = memo(() => {
         position={[-12, -15, 6]} 
         rotation={[0.5, 0, 0.3]}
     >
-        {/* Planet Body */}
+        {/* Planet Body - Swapped to Pink Shade */}
         <Sphere args={[5, 64, 64]}>
             <meshStandardMaterial 
-                color="#4b0082" // Indigo/Deep Purple
-                emissive="#2a0050"
+                color="#DDA0DD" // Plum / Pinkish
+                emissive="#8B008B" // Dark Magenta
                 emissiveIntensity={0.2}
                 roughness={0.7}
                 metalness={0.2}
             />
         </Sphere>
         
-        {/* Planet Rings */}
+        {/* Planet Rings - Swapped to Pink Shade */}
         <group rotation={[-Math.PI / 2 + 0.4, 0, 0]}>
             <Ring args={[6, 9, 64]}>
                 <meshStandardMaterial 
-                    color="#9370db" // Medium Purple
-                    emissive="#9370db"
+                    color="#FF69B4" // Hot Pink
+                    emissive="#FF1493"
                     emissiveIntensity={0.1}
                     transparent
                     opacity={0.6}
@@ -103,8 +103,8 @@ const Planet = memo(() => {
             </Ring>
              <Ring args={[9.5, 11, 64]}>
                 <meshStandardMaterial 
-                    color="#dda0dd" // Plum
-                    emissive="#dda0dd"
+                    color="#FFB6C1" // Light Pink
+                    emissive="#FFB6C1"
                     emissiveIntensity={0.1}
                     transparent
                     opacity={0.4}
@@ -117,6 +117,65 @@ const Planet = memo(() => {
 });
 
 Planet.displayName = 'Planet';
+
+const LargeCraterPlanet = memo(() => {
+    const planetRef = useRef<THREE.Group>(null);
+    
+    useFrame((state, delta) => {
+      if (planetRef.current) {
+        // Rotate in OPPOSITE direction
+        planetRef.current.rotation.y -= delta * 0.03; 
+        planetRef.current.rotation.z -= delta * 0.005;
+      }
+    });
+  
+    return (
+      <group 
+          ref={planetRef} 
+          // Position: Top Right
+          // Y=-25 puts it behind Planet (Y=-15) and in front of Stars (Y<-30)
+          position={[12, -25, -4]} 
+          rotation={[0.2, 0, -0.1]}
+      >
+          {/* Large Planet Body - Swapped to Purple Shade */}
+          <Sphere args={[8, 64, 64]}>
+              <meshStandardMaterial 
+                  color="#4b0082" // Indigo/Deep Purple
+                  emissive="#2a0050"
+                  emissiveIntensity={0.2}
+                  roughness={0.9} 
+                  metalness={0.1}
+              />
+          </Sphere>
+
+          {/* Large Planet Rings - Swapped to Purple Shade */}
+          <group rotation={[-Math.PI / 2 + 0.2, 0, 0]}>
+            <Ring args={[10, 14, 64]}>
+                <meshStandardMaterial 
+                    color="#9370db" // Medium Purple
+                    emissive="#9370db"
+                    emissiveIntensity={0.1}
+                    transparent
+                    opacity={0.5}
+                    side={THREE.DoubleSide}
+                />
+            </Ring>
+             <Ring args={[15, 17, 64]}>
+                <meshStandardMaterial 
+                    color="#dda0dd" // Plum
+                    emissive="#dda0dd"
+                    emissiveIntensity={0.1}
+                    transparent
+                    opacity={0.3}
+                    side={THREE.DoubleSide}
+                />
+            </Ring>
+        </group>
+      </group>
+    );
+  });
+
+LargeCraterPlanet.displayName = 'LargeCraterPlanet';
 
 
 export const Starfield = memo(() => {
@@ -169,11 +228,13 @@ export const Starfield = memo(() => {
 
   return (
     <group>
-        {/* Planet rendered first (opaque-ish), at Y=-15 */}
+        {/* Planet 1 (Rings, Bottom Left) */}
         <Planet />
 
+        {/* Planet 2 (Large with Rings, Top Right) */}
+        <LargeCraterPlanet />
+
         {/* Stars rendered second (transparent additive), at Y < -30 */}
-        {/* Depth write false means they won't occlude things, but Planet occludes them via Z-buffer */}
         <points frustumCulled={false}>
             <bufferGeometry>
                 <bufferAttribute
