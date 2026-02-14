@@ -112,7 +112,8 @@ const generateDiceTextures = () => {
         hCtx.drawImage(heightCanvas, 0, 0);
 
         if (label) {
-            const fontSize = label === 'ROLL' ? 70 : 140;
+            // Further reduced font sizes as requested - Reduced from 70/140 to 40/80
+            const fontSize = label === 'ROLL' ? 40 : 80;
             const font = `900 ${fontSize}px "Iceland", sans-serif`;
             const cx = TEX_SIZE / 2;
             const cy = TEX_SIZE / 2;
