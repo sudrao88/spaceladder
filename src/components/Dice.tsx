@@ -8,8 +8,8 @@ interface DiceProps {
     isRolling: boolean;
 }
 
-// Optimized resolution for mobile
-const TEX_SIZE = 512;
+// Increased resolution for sharper text
+const TEX_SIZE = 1024;
 
 /**
  * Pre-generates all possible textures for the dice (Mars base, ROLL, and 1-6).
@@ -71,7 +71,8 @@ const generateDiceTextures = () => {
     for (let i = 0; i < 80; i++) {
         const x = Math.random() * TEX_SIZE;
         const y = Math.random() * TEX_SIZE;
-        const r = Math.random() * (TEX_SIZE / 12) + 8; // Slightly larger minimum radius
+        // Scaled radius for 1024
+        const r = Math.random() * (TEX_SIZE / 12) + 16; 
         const opacity = Math.random() * 0.4 + 0.1;
 
         const wraps = [[0,0], [TEX_SIZE,0], [-TEX_SIZE,0], [0,TEX_SIZE], [0,-TEX_SIZE], [TEX_SIZE,TEX_SIZE], [TEX_SIZE,-TEX_SIZE], [-TEX_SIZE,TEX_SIZE], [-TEX_SIZE,-TEX_SIZE]];
@@ -112,8 +113,8 @@ const generateDiceTextures = () => {
         hCtx.drawImage(heightCanvas, 0, 0);
 
         if (label) {
-            // Further reduced font sizes as requested - Reduced from 70/140 to 40/80
-            const fontSize = label === 'ROLL' ? 40 : 80;
+            // Scaled font sizes for 1024 - Scaled from 40/80 (on 512) to 80/160 (on 1024)
+            const fontSize = label === 'ROLL' ? 80 : 160;
             const font = `900 ${fontSize}px "Iceland", sans-serif`;
             const cx = TEX_SIZE / 2;
             const cy = TEX_SIZE / 2;
@@ -124,8 +125,9 @@ const generateDiceTextures = () => {
 
             cCtx.textAlign = 'center'; cCtx.textBaseline = 'middle'; cCtx.font = font;
             
+            // Scaled shadow offset
             cCtx.fillStyle = 'rgba(0, 0, 0, 0.8)';
-            cCtx.fillText(label, cx + 5, cy + 5);
+            cCtx.fillText(label, cx + 10, cy + 10); 
             cCtx.fillStyle = '#FFFFFF';
             cCtx.fillText(label, cx, cy);
         }
