@@ -183,7 +183,8 @@ const DicePanel = memo(() => {
           tabIndex={0}
           aria-label={isRolling ? 'Rolling dice...' : 'Roll dice'}
           aria-disabled={isRolling}
-          className="h-24 w-24 bg-transparent relative cursor-pointer hover:scale-110 transition-transform duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400 rounded-full overflow-hidden"
+          // Increased container size from h-24 w-24 to h-32 w-32
+          className="h-32 w-32 bg-transparent relative cursor-pointer hover:scale-110 transition-transform duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400 rounded-full overflow-hidden"
           onClick={!isRolling ? rollDice : undefined}
           onKeyDown={handleKeyDown}
           title="Tap to Roll"

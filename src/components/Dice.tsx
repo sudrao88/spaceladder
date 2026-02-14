@@ -8,15 +8,15 @@ interface DiceProps {
     isRolling: boolean;
 }
 
-// Optimized resolution for mobile
-const TEX_SIZE = 512;
+// Increased resolution for sharper text
+const TEX_SIZE = 1024;
 
 /**
- * Pre-generates all possible textures for the dice (Moon base, ROLL, and 1-6).
+ * Pre-generates all possible textures for the dice (Mars base, ROLL, and 1-6).
  * This avoids expensive canvas operations and texture uploads during gameplay.
  */
 const generateDiceTextures = () => {
-    // 1. Create Base Moon Assets
+    // 1. Create Base Mars Assets
     const colorCanvas = document.createElement('canvas');
     colorCanvas.width = TEX_SIZE;
     colorCanvas.height = TEX_SIZE;
@@ -27,8 +27,8 @@ const generateDiceTextures = () => {
     heightCanvas.height = TEX_SIZE;
     const heightCtx = heightCanvas.getContext('2d')!;
 
-    // Background
-    colorCtx.fillStyle = '#EBEBEB'; 
+    // Background - Mars Red
+    colorCtx.fillStyle = '#C1440E'; 
     colorCtx.fillRect(0, 0, TEX_SIZE, TEX_SIZE);
     heightCtx.fillStyle = '#808080';
     heightCtx.fillRect(0, 0, TEX_SIZE, TEX_SIZE);
@@ -53,23 +53,25 @@ const generateDiceTextures = () => {
         // Color Map
         ctxC.beginPath();
         ctxC.arc(x, y, r * 1.1, 0, Math.PI * 2);
-        ctxC.fillStyle = `rgba(255, 255, 255, ${opacity * 0.5})`;
+        ctxC.fillStyle = `rgba(255, 200, 150, ${opacity * 0.3})`;
         ctxC.fill();
 
         ctxC.beginPath();
         ctxC.arc(x, y, r, 0, Math.PI * 2);
         const cGrad = ctxC.createRadialGradient(x, y, 0, x, y, r);
-        const shade = Math.floor(Math.random() * 40 + 120);
-        cGrad.addColorStop(0, `rgba(${shade - 40}, ${shade - 40}, ${shade - 40}, ${opacity})`);
-        cGrad.addColorStop(1, `rgba(${shade}, ${shade}, ${shade}, ${opacity * 0.5})`);
+        // Darker red/brown for craters
+        const shade = Math.floor(Math.random() * 40 + 60); 
+        cGrad.addColorStop(0, `rgba(${shade}, ${shade * 0.3}, ${shade * 0.1}, ${opacity})`);
+        cGrad.addColorStop(1, `rgba(${shade + 40}, ${(shade + 40) * 0.3}, ${(shade + 40) * 0.1}, ${opacity * 0.5})`);
         ctxC.fillStyle = cGrad;
         ctxC.fill();
     };
 
+    // Scaled crater count and sizes relative to new TEX_SIZE
     for (let i = 0; i < 80; i++) {
         const x = Math.random() * TEX_SIZE;
         const y = Math.random() * TEX_SIZE;
-        const r = Math.random() * (TEX_SIZE / 12) + 4;
+        const r = Math.random() * (TEX_SIZE / 12) + 8; // Slightly larger minimum radius
         const opacity = Math.random() * 0.4 + 0.1;
 
         const wraps = [[0,0], [TEX_SIZE,0], [-TEX_SIZE,0], [0,TEX_SIZE], [0,-TEX_SIZE], [TEX_SIZE,TEX_SIZE], [TEX_SIZE,-TEX_SIZE], [-TEX_SIZE,TEX_SIZE], [-TEX_SIZE,-TEX_SIZE]];
@@ -110,8 +112,9 @@ const generateDiceTextures = () => {
         hCtx.drawImage(heightCanvas, 0, 0);
 
         if (label) {
-            // Further reduced font sizes as requested
-            const fontSize = label === 'ROLL' ? 70 : 140; 
+            // Scaled font sizes for 1024x1024 texture (double the previous values relative to canvas size)
+            // Previous: 30/60 on 512 -> Now: 60/120 on 1024 to maintain relative visual size but higher resolution
+            const fontSize = label === 'ROLL' ? 60 : 120; 
             const font = `900 ${fontSize}px "Iceland", sans-serif`;
             const cx = TEX_SIZE / 2;
             const cy = TEX_SIZE / 2;
@@ -121,17 +124,21 @@ const generateDiceTextures = () => {
             hCtx.fillText(label, cx, cy);
 
             cCtx.textAlign = 'center'; cCtx.textBaseline = 'middle'; cCtx.font = font;
-            cCtx.fillStyle = 'rgba(255, 255, 255, 0.8)';
-            cCtx.fillText(label, cx + 5, cy + 5);
-            cCtx.fillStyle = 'rgba(0, 0, 0, 0.8)';
-            cCtx.fillText(label, cx - 5, cy - 5);
-            cCtx.fillStyle = '#222222';
+            
+            // Scaled shadow offset
+            cCtx.fillStyle = 'rgba(0, 0, 0, 0.8)'; // Shadow color
+            cCtx.fillText(label, cx + 6, cy + 6); // Scaled offset for shadow
+            cCtx.fillStyle = '#FFFFFF'; // Main text color set to White
             cCtx.fillText(label, cx, cy);
         }
 
         const cTex = new THREE.CanvasTexture(cCanvas);
         cTex.colorSpace = THREE.SRGBColorSpace;
         cTex.wrapS = cTex.wrapT = THREE.RepeatWrapping;
+        // Improve texture filtering for sharpness
+        cTex.minFilter = THREE.LinearMipMapLinearFilter;
+        cTex.magFilter = THREE.LinearFilter;
+        cTex.anisotropy = 16; // Max anisotropy for sharpness at angles
         
         const hTex = new THREE.CanvasTexture(hCanvas);
         hTex.wrapS = hTex.wrapT = THREE.RepeatWrapping;
@@ -177,15 +184,15 @@ export const Dice = memo(({ value, isRolling }: DiceProps) => {
     return (
         <group ref={groupRef}>
             {/* Reduced segments from 64 to 48 for better mobile performance without visual loss */}
-            <Sphere args={[2.2, 48, 48]}>
+            <Sphere args={[3.2, 48, 48]}>
                 <meshStandardMaterial 
                     map={activeTextures.color}
                     bumpMap={activeTextures.bump}
                     bumpScale={0.2} 
                     roughness={0.6} 
                     metalness={0.0}
-                    emissive="white"
-                    emissiveIntensity={0.1} 
+                    emissive="#FF4500"
+                    emissiveIntensity={0.15} 
                 />
             </Sphere>
         </group>
