@@ -19,8 +19,8 @@ const CAMERA_ROTATION: [number, number, number] = [-Math.PI / 2, 0, 0];
 const AMBIENT_INTENSITY = 1;
 const DIR_LIGHT_POS: [number, number, number] = [5, 10, 5];
 const DIR_LIGHT_INTENSITY = 0.5;
-// Capped DPR to 1.5 to prevent GPU strain on mobile devices while maintaining sharpness
-const CANVAS_DPR: [number, number] = [1, 1.5];
+// Increased max DPR from 1.5 to 2.5 to sharpen visuals on high-DPI screens when zoomed in
+const CANVAS_DPR: [number, number] = [1, 2.5];
 
 // Separate scene contents to isolate 3D render tree from HUD re-renders
 const GameScene = memo(() => {
@@ -68,6 +68,7 @@ function App() {
           dpr={CANVAS_DPR}
           frameloop="always" 
           performance={{ min: 0.5 }} // Allow downgrading quality if FPS drops
+          gl={{ antialias: true, powerPreference: "high-performance" }} // Enabled antialias and requested high performance
           style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none' }}
         >
           <OrthographicCamera
