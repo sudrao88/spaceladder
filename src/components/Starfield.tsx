@@ -1,6 +1,7 @@
 import { memo, useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
+import { Sphere, Ring } from '@react-three/drei';
 
 // Increased count to maintain density over a larger area
 const STAR_COUNT = 3000; 
@@ -12,7 +13,7 @@ const StarfieldShaderMaterial = {
   uniforms: {
     uTime: { value: 0 },
     uColor: { value: new THREE.Color('#ffffff') },
-    uSize: { value: 6.0 }, // Reduced size as requested
+    uSize: { value: 20.0 }, // Updated size
   },
   vertexShader: `
     uniform float uTime;
@@ -58,6 +59,125 @@ const StarfieldShaderMaterial = {
   `
 };
 
+const Planet = memo(() => {
+  const planetRef = useRef<THREE.Group>(null);
+  
+  useFrame((_state, delta) => {
+    if (planetRef.current) {
+      // Restored previous rotation speed
+      planetRef.current.rotation.y += delta * 0.05;
+      planetRef.current.rotation.z += delta * 0.01;
+    }
+  });
+
+  return (
+    <group 
+        ref={planetRef} 
+        // Positioned lower down (increased Z) and kept to the left (negative X)
+        // Depth (Y) set to -15 so it's behind the board (Y=0) but in front of stars
+        position={[-12, -15, 6]} 
+        rotation={[0.5, 0, 0.3]}
+    >
+        {/* Planet Body - Swapped to Pink Shade */}
+        <Sphere args={[5, 64, 64]}>
+            <meshStandardMaterial 
+                color="#DDA0DD" // Plum / Pinkish
+                emissive="#8B008B" // Dark Magenta
+                emissiveIntensity={0.2}
+                roughness={0.7}
+                metalness={0.2}
+            />
+        </Sphere>
+        
+        {/* Planet Rings - Swapped to Pink Shade */}
+        <group rotation={[-Math.PI / 2 + 0.4, 0, 0]}>
+            <Ring args={[6, 9, 64]}>
+                <meshStandardMaterial 
+                    color="#FF69B4" // Hot Pink
+                    emissive="#FF1493"
+                    emissiveIntensity={0.1}
+                    transparent
+                    opacity={0.6}
+                    side={THREE.DoubleSide}
+                />
+            </Ring>
+             <Ring args={[9.5, 11, 64]}>
+                <meshStandardMaterial 
+                    color="#FFB6C1" // Light Pink
+                    emissive="#FFB6C1"
+                    emissiveIntensity={0.1}
+                    transparent
+                    opacity={0.4}
+                    side={THREE.DoubleSide}
+                />
+            </Ring>
+        </group>
+    </group>
+  );
+});
+
+Planet.displayName = 'Planet';
+
+const LargeCraterPlanet = memo(() => {
+    const planetRef = useRef<THREE.Group>(null);
+    
+    useFrame((_state, delta) => {
+      if (planetRef.current) {
+        // Rotate in OPPOSITE direction
+        planetRef.current.rotation.y -= delta * 0.03; 
+        planetRef.current.rotation.z -= delta * 0.005;
+      }
+    });
+  
+    return (
+      <group 
+          ref={planetRef} 
+          // Position: Top Right
+          // Y=-25 puts it behind Planet (Y=-15) and in front of Stars (Y<-30)
+          position={[12, -25, -4]} 
+          rotation={[0.2, 0, -0.1]}
+      >
+          {/* Large Planet Body - Swapped to Purple Shade */}
+          <Sphere args={[8, 64, 64]}>
+              <meshStandardMaterial 
+                  color="#4b0082" // Indigo/Deep Purple
+                  emissive="#2a0050"
+                  emissiveIntensity={0.2}
+                  roughness={0.9} 
+                  metalness={0.1}
+              />
+          </Sphere>
+
+          {/* Large Planet Rings - Swapped to Purple Shade */}
+          <group rotation={[-Math.PI / 2 + 0.2, 0, 0]}>
+            <Ring args={[10, 14, 64]}>
+                <meshStandardMaterial 
+                    color="#9370db" // Medium Purple
+                    emissive="#9370db"
+                    emissiveIntensity={0.1}
+                    transparent
+                    opacity={0.5}
+                    side={THREE.DoubleSide}
+                />
+            </Ring>
+             <Ring args={[15, 17, 64]}>
+                <meshStandardMaterial 
+                    color="#dda0dd" // Plum
+                    emissive="#dda0dd"
+                    emissiveIntensity={0.1}
+                    transparent
+                    opacity={0.3}
+                    side={THREE.DoubleSide}
+                />
+            </Ring>
+        </group>
+      </group>
+    );
+  });
+
+LargeCraterPlanet.displayName = 'LargeCraterPlanet';
+
+
 export const Starfield = memo(() => {
   const shaderRef = useRef<THREE.ShaderMaterial>(null);
 
@@ -72,8 +192,11 @@ export const Starfield = memo(() => {
     for (let i = 0; i < STAR_COUNT; i++) {
         // Position - Spread widely
         pos[i * 3] = (Math.random() - 0.5) * SPREAD;     // X
-        // Y: Positioned relative to board, deeper for parallax
-        pos[i * 3 + 1] = -5.0 - Math.random() * 15.0; 
+        
+        // Y: Deep background. Board is 0, Planet is -15.
+        // Stars pushed to -30 to -60 to be strictly behind planet
+        pos[i * 3 + 1] = -30.0 - Math.random() * 30.0; 
+        
         pos[i * 3 + 2] = (Math.random() - 0.5) * DEPTH;  // Z
 
         // Color
@@ -104,37 +227,46 @@ export const Starfield = memo(() => {
   });
 
   return (
-    <points frustumCulled={false}>
-      <bufferGeometry>
-        <bufferAttribute
-          attach="attributes-position"
-          count={STAR_COUNT}
-          args={[positions, 3]}
-        />
-        <bufferAttribute
-          attach="attributes-aColor"
-          count={STAR_COUNT}
-          args={[colors, 3]}
-        />
-        <bufferAttribute
-          attach="attributes-aSpeed"
-          count={STAR_COUNT}
-          args={[speeds, 1]}
-        />
-        <bufferAttribute
-          attach="attributes-aScale"
-          count={STAR_COUNT}
-          args={[scales, 1]}
-        />
-      </bufferGeometry>
-      <shaderMaterial
-        ref={shaderRef}
-        args={[StarfieldShaderMaterial]}
-        transparent
-        depthWrite={false}
-        blending={THREE.AdditiveBlending}
-      />
-    </points>
+    <group>
+        {/* Planet 1 (Rings, Bottom Left) */}
+        <Planet />
+
+        {/* Planet 2 (Large with Rings, Top Right) */}
+        <LargeCraterPlanet />
+
+        {/* Stars rendered second (transparent additive), at Y < -30 */}
+        <points frustumCulled={false}>
+            <bufferGeometry>
+                <bufferAttribute
+                attach="attributes-position"
+                count={STAR_COUNT}
+                args={[positions, 3]}
+                />
+                <bufferAttribute
+                attach="attributes-aColor"
+                count={STAR_COUNT}
+                args={[colors, 3]}
+                />
+                <bufferAttribute
+                attach="attributes-aSpeed"
+                count={STAR_COUNT}
+                args={[speeds, 1]}
+                />
+                <bufferAttribute
+                attach="attributes-aScale"
+                count={STAR_COUNT}
+                args={[scales, 1]}
+                />
+            </bufferGeometry>
+            <shaderMaterial
+                ref={shaderRef}
+                args={[StarfieldShaderMaterial]}
+                transparent
+                depthWrite={false}
+                blending={THREE.AdditiveBlending}
+            />
+        </points>
+    </group>
   );
 });
 

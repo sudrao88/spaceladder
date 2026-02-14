@@ -19,8 +19,8 @@ const CAMERA_ROTATION: [number, number, number] = [-Math.PI / 2, 0, 0];
 const AMBIENT_INTENSITY = 1;
 const DIR_LIGHT_POS: [number, number, number] = [5, 10, 5];
 const DIR_LIGHT_INTENSITY = 0.5;
-// Capped DPR to 1.5 to prevent GPU strain on mobile devices while maintaining sharpness
-const CANVAS_DPR: [number, number] = [1, 1.5];
+// Capped DPR to 2 to balance sharpness on high-DPI screens with mobile performance
+const CANVAS_DPR: [number, number] = [1, 2];
 
 // Separate scene contents to isolate 3D render tree from HUD re-renders
 const GameScene = memo(() => {
@@ -46,7 +46,7 @@ GameScene.displayName = 'GameScene';
 const LoadingFallback = () => (
   <mesh>
     <planeGeometry args={[1, 1]} />
-    <meshBasicMaterial color="#050510" />
+    <meshBasicMaterial color="#000000" />
   </mesh>
 );
 
@@ -54,7 +54,8 @@ function App() {
   const containerRef = useRef<HTMLDivElement>(null!);
 
   return (
-    <div ref={containerRef} className="relative w-full h-screen bg-gray-900 overflow-hidden select-none touch-none">
+    // Changed bg-gray-900 to bg-black for pitch black background
+    <div ref={containerRef} className="relative w-full h-screen bg-black overflow-hidden select-none touch-none">
       {/* Landscape Enforcement Overlay */}
       <div className="landscape-enforce fixed inset-0 z-[100] bg-black text-white items-center justify-center p-8 text-center">
           <p className="text-xl font-bold">Please rotate your device to landscape mode to play.</p>
@@ -68,8 +69,12 @@ function App() {
           dpr={CANVAS_DPR}
           frameloop="always" 
           performance={{ min: 0.5 }} // Allow downgrading quality if FPS drops
+          gl={{ antialias: true, powerPreference: "high-performance" }} // Enabled antialias and requested high performance
           style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none' }}
         >
+          {/* Explicitly set Three.js background to black to match DOM container */}
+          <color attach="background" args={['#000000']} />
+
           <OrthographicCamera
               makeDefault
               position={CAMERA_POSITION}

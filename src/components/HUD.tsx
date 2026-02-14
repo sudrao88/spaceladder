@@ -138,8 +138,11 @@ const PlayerList = memo(({ currentPlayerIndex }: PlayerListProps) => {
         return (
           <div
             key={p.id}
-            className={`flex items-center gap-3 px-4 py-2 rounded-xl bg-black/50 backdrop-blur-md border transition-all
-                ${idx === currentPlayerIndex ? 'border-white scale-110 shadow-lg' : 'border-transparent opacity-70'}
+            className={`flex items-center gap-3 px-4 py-2 rounded-xl backdrop-blur-md border transition-all
+                ${idx === currentPlayerIndex 
+                  ? 'border-white scale-110 shadow-lg bg-gray-900/90' // Active player: darker gray background (almost black)
+                  : 'border-transparent opacity-70 bg-gray-900/60' // Inactive: semi-transparent gray
+                }
             `}
           >
             <span className="text-2xl" role="img" aria-label="player-token">
@@ -183,7 +186,8 @@ const DicePanel = memo(() => {
           tabIndex={0}
           aria-label={isRolling ? 'Rolling dice...' : 'Roll dice'}
           aria-disabled={isRolling}
-          className="h-24 w-24 bg-transparent relative cursor-pointer hover:scale-110 transition-transform duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400 rounded-full overflow-hidden"
+          // Increased container size from h-24 w-24 to h-32 w-32
+          className="h-32 w-32 bg-transparent relative cursor-pointer hover:scale-110 transition-transform duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400 rounded-full overflow-hidden"
           onClick={!isRolling ? rollDice : undefined}
           onKeyDown={handleKeyDown}
           title="Tap to Roll"
