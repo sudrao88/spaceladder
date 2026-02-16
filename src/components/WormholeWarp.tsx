@@ -9,6 +9,7 @@ import { useGameStore } from '../store/useGameStore';
 import { GameController } from '../hooks/useGameController';
 import { CameraController } from './CameraController';
 import { CanvasErrorBoundary } from './ErrorBoundary';
+import { LandscapeEnforcer } from './shared';
 
 // Granular selector — only re-renders when players array reference changes
 const selectPlayers = (s: ReturnType<typeof useGameStore.getState>) => s.players;
@@ -55,10 +56,7 @@ export const WormholeWarp = memo(() => {
 
   return (
     <div ref={containerRef} className="relative w-full h-screen bg-black overflow-hidden select-none touch-none">
-      {/* Landscape Enforcement Overlay */}
-      <div className="landscape-enforce fixed inset-0 z-[100] bg-black text-white items-center justify-center p-8 text-center">
-          <p className="text-xl font-bold">Please rotate your device to landscape mode to play.</p>
-      </div>
+      <LandscapeEnforcer />
 
       <HUD />
 

@@ -1,34 +1,15 @@
-import { memo, useMemo } from 'react';
+import { memo } from 'react';
 import { motion } from 'framer-motion';
 import { useAppStore } from '../store/useAppStore';
+import { CssStarfield } from './shared';
 
-interface StarData {
-  width: number;
-  height: number;
-  top: number;
-  left: number;
-  opacity: number;
-  animationDelay: number;
-  animationDuration: number;
-}
-
-function generateStarField(count: number, seed: number): StarData[] {
-  // Simple seeded pseudo-random for deterministic star positions
-  let s = seed;
-  const next = () => {
-    s = (s * 1664525 + 1013904223) & 0xffffffff;
-    return (s >>> 0) / 0xffffffff;
-  };
-  return Array.from({ length: count }, () => ({
-    width: 1 + next() * 2,
-    height: 1 + next() * 2,
-    top: next() * 100,
-    left: next() * 100,
-    opacity: 0.2 + next() * 0.5,
-    animationDelay: next() * 4,
-    animationDuration: 2 + next() * 3,
-  }));
-}
+const SOLITAIRE_STAR_CONFIG = {
+  minOpacity: 0.15,
+  opacityRange: 0.4,
+  maxDelay: 5,
+  minDuration: 3,
+  durationRange: 4,
+};
 
 const GameCard = memo(({
   title,
@@ -80,28 +61,10 @@ GameCard.displayName = 'GameCard';
 
 export const GameLauncher = memo(() => {
   const navigateTo = useAppStore((s) => s.navigateTo);
-  const stars = useMemo(() => generateStarField(60, 42), []);
 
   return (
     <div className="fixed inset-0 flex flex-col items-center justify-center bg-[#050510] overflow-hidden">
-      {/* Background stars (CSS-based for lightweight launcher) */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        {stars.map((star, i) => (
-          <div
-            key={i}
-            className="absolute rounded-full bg-white animate-pulse"
-            style={{
-              width: `${star.width}px`,
-              height: `${star.height}px`,
-              top: `${star.top}%`,
-              left: `${star.left}%`,
-              opacity: star.opacity,
-              animationDelay: `${star.animationDelay}s`,
-              animationDuration: `${star.animationDuration}s`,
-            }}
-          />
-        ))}
-      </div>
+      <CssStarfield count={60} seed={42} config={SOLITAIRE_STAR_CONFIG} />
 
       {/* Title */}
       <motion.div
