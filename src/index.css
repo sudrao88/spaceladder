@@ -78,6 +78,16 @@ html, body, #root {
   100% { opacity: 0; transform: rotate(var(--angle, 0deg)) translateY(140px) scaleY(1); }
 }
 
+/* ── Star Solitaire: background star twinkle ──────────────── */
+.solitaire-twinkle {
+  animation: solitaire-twinkle-kf 3s ease-in-out infinite;
+}
+
+@keyframes solitaire-twinkle-kf {
+  0%, 100% { opacity: 0.15; }
+  50%      { opacity: 0.7; }
+}
+
 /* ── Landscape enforcement ─────────────────────────────────── */
 /* Uses @media (orientation: portrait) so it covers all devices including
    tablets, not just phones below the `md` breakpoint. */
