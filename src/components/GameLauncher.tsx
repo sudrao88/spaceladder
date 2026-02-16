@@ -139,10 +139,10 @@ export const GameLauncher = memo(() => {
           title="Star Solitaire"
           subtitle="1 Player"
           emoji="⭐"
-          gradientFrom="#1a0a2e"
-          gradientTo="#0c1445"
-          borderColor="border-purple-500/50"
-          glowColor="rgba(168,85,247,0.15)"
+          gradientFrom="#0c1445"
+          gradientTo="#1e1b4b"
+          borderColor="border-cyan-500/50"
+          glowColor="rgba(6,182,212,0.15)"
           description="Jump stars into black holes until one remains. A cosmic puzzle of strategy!"
           onClick={() => navigateTo('star-solitaire')}
         />

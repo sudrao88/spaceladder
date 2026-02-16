@@ -44,13 +44,13 @@ const Cell = memo(({
         transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400
         ${isStar
           ? isSelected
-            ? 'bg-purple-900/80 border-2 border-yellow-400 shadow-[0_0_20px_rgba(250,204,21,0.4)]'
-            : 'bg-indigo-950/60 border border-indigo-700/50 hover:border-purple-400/60 hover:bg-indigo-900/60 cursor-pointer'
+            ? 'bg-cyan-950/60 border-2 border-cyan-400 shadow-[0_0_25px_rgba(6,182,212,0.5)]'
+            : 'bg-gray-900/60 border border-cyan-800/40 hover:border-cyan-500/60 hover:bg-cyan-950/40 cursor-pointer'
           : isValidTarget
-            ? 'bg-cyan-950/40 border-2 border-cyan-400/70 shadow-[0_0_15px_rgba(6,182,212,0.3)] cursor-pointer'
+            ? 'bg-cyan-950/40 border-2 border-cyan-400/70 shadow-[0_0_20px_rgba(6,182,212,0.4)] cursor-pointer'
             : 'bg-gray-900/40 border border-gray-700/30'
         }
-        ${isJumpedStar ? 'ring-2 ring-red-400/50' : ''}
+        ${isJumpedStar ? 'ring-2 ring-purple-400/60' : ''}
       `}
       whileHover={!disabled && (isStar || isValidTarget) ? { scale: 1.08 } : {}}
       whileTap={!disabled && (isStar || isValidTarget) ? { scale: 0.95 } : {}}
@@ -64,7 +64,7 @@ const Cell = memo(({
             animate={{ scale: 1, rotate: 0 }}
             exit={{ scale: 0, rotate: 180, opacity: 0 }}
             transition={{ type: 'spring', stiffness: 300, damping: 20 }}
-            className={`text-3xl sm:text-4xl select-none ${isSelected ? 'drop-shadow-[0_0_8px_rgba(250,204,21,0.8)]' : ''}`}
+            className={`text-3xl sm:text-4xl select-none ${isSelected ? 'drop-shadow-[0_0_12px_rgba(6,182,212,0.8)]' : ''}`}
           >
             ⭐
           </motion.span>
@@ -87,7 +87,7 @@ const Cell = memo(({
             {isValidTarget && (
               <motion.div
                 className="w-full h-full rounded-full"
-                animate={{ boxShadow: ['0 0 5px rgba(6,182,212,0.3)', '0 0 15px rgba(6,182,212,0.6)', '0 0 5px rgba(6,182,212,0.3)'] }}
+                animate={{ boxShadow: ['0 0 8px rgba(6,182,212,0.3)', '0 0 20px rgba(6,182,212,0.7)', '0 0 8px rgba(6,182,212,0.3)'] }}
                 transition={{ duration: 1.5, repeat: Infinity }}
               />
             )}

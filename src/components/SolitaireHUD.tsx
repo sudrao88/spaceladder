@@ -39,19 +39,19 @@ const StatsPanel = memo(() => {
     <div className="flex gap-6 items-center">
       <div className="flex flex-col items-center">
         <span className="text-xs text-gray-400 uppercase tracking-wider">Stars</span>
-        <span className="text-2xl font-bold text-yellow-400">{starsRemaining}</span>
+        <span className="text-2xl font-mono font-bold text-cyan-300">{starsRemaining}</span>
       </div>
       <div className="w-px h-8 bg-gray-600" />
       <div className="flex flex-col items-center">
         <span className="text-xs text-gray-400 uppercase tracking-wider">Moves</span>
-        <span className="text-2xl font-bold text-cyan-400">{moveCount}</span>
+        <span className="text-2xl font-mono font-bold text-cyan-300">{moveCount}</span>
       </div>
       {bestScore !== null && (
         <>
           <div className="w-px h-8 bg-gray-600" />
           <div className="flex flex-col items-center">
             <span className="text-xs text-gray-400 uppercase tracking-wider">Best</span>
-            <span className="text-2xl font-bold text-purple-400">{bestScore}</span>
+            <span className="text-2xl font-mono font-bold text-purple-400">{bestScore}</span>
           </div>
         </>
       )}
@@ -118,14 +118,14 @@ const IdleScreen = memo(() => {
         className="flex flex-col items-center"
       >
         <span className="text-7xl mb-6">⭐</span>
-        <h1 className="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-purple-500 mb-3">
+        <h1 className="text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-purple-600 mb-3">
           STAR SOLITAIRE
         </h1>
         <p className="text-gray-400 mb-2 text-center max-w-md">
           Jump stars over each other into black holes. Try to leave just one star remaining!
         </p>
         {bestScore !== null && (
-          <p className="text-purple-400 text-sm mb-6">
+          <p className="text-cyan-300 text-sm mb-6">
             Your best: {bestScore} {bestScore === 1 ? 'star' : 'stars'} remaining
           </p>
         )}
@@ -133,7 +133,7 @@ const IdleScreen = memo(() => {
         <button
           autoFocus
           onClick={startGame}
-          className="px-10 py-4 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white rounded-xl text-xl font-bold shadow-lg shadow-purple-500/30 transition-all active:scale-95 border border-purple-400/30"
+          className="px-10 py-4 bg-gray-800 hover:bg-cyan-900 border border-cyan-500 text-white rounded-lg text-xl font-bold shadow-[0_0_15px_rgba(6,182,212,0.5)] hover:shadow-[0_0_25px_rgba(6,182,212,0.8)] transition-all active:scale-95"
         >
           Start Game
         </button>
@@ -167,10 +167,10 @@ const EndScreen = memo(() => {
         initial={{ scale: 0.8, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         transition={{ type: 'spring', stiffness: 300, damping: 25 }}
-        className="flex flex-col items-center bg-gray-900/95 rounded-2xl p-8 border border-white/10 shadow-2xl max-w-sm w-full"
+        className="flex flex-col items-center bg-gray-900/95 rounded-2xl p-8 border border-cyan-500/30 shadow-[0_0_40px_rgba(6,182,212,0.15)] max-w-sm w-full"
       >
         <span className="text-6xl mb-4">{isWin ? '🌟' : '💫'}</span>
-        <h2 className={`text-3xl font-bold mb-2 ${isWin ? 'text-yellow-400' : 'text-purple-400'}`}>
+        <h2 className={`text-3xl font-bold mb-2 ${isWin ? 'text-yellow-400 animate-pulse' : 'text-purple-400'}`}>
           {isWin ? 'PERFECT!' : 'GAME OVER'}
         </h2>
         <p className="text-gray-300 mb-1 text-center">
@@ -178,10 +178,10 @@ const EndScreen = memo(() => {
             ? 'You solved it! Only one star remains in the center!'
             : `${starsRemaining} ${starsRemaining === 1 ? 'star' : 'stars'} remaining. No more moves available.`}
         </p>
-        <p className="text-gray-500 text-sm mb-1">Completed in {moveCount} moves</p>
+        <p className="text-gray-500 text-sm mb-1">Completed in <span className="font-mono">{moveCount}</span> moves</p>
         {bestScore !== null && (
-          <p className="text-purple-400 text-sm mb-6">
-            Best: {bestScore} {bestScore === 1 ? 'star' : 'stars'}
+          <p className="text-cyan-300 text-sm mb-6">
+            Best: <span className="font-mono">{bestScore}</span> {bestScore === 1 ? 'star' : 'stars'}
           </p>
         )}
         {bestScore === null && <div className="mb-6" />}
@@ -189,13 +189,13 @@ const EndScreen = memo(() => {
           <button
             autoFocus
             onClick={() => { resetGame(); startGame(); }}
-            className="px-6 py-3 bg-purple-600 hover:bg-purple-500 text-white rounded-xl font-bold transition-all active:scale-95"
+            className="px-6 py-3 bg-gray-800 hover:bg-cyan-900 border border-cyan-500 text-white rounded-lg font-bold shadow-[0_0_15px_rgba(6,182,212,0.5)] hover:shadow-[0_0_25px_rgba(6,182,212,0.8)] transition-all active:scale-95"
           >
             Play Again
           </button>
           <button
             onClick={() => useAppStore.getState().navigateTo('launcher')}
-            className="px-6 py-3 bg-gray-700 hover:bg-gray-600 text-white rounded-xl font-bold transition-all active:scale-95"
+            className="px-6 py-3 bg-gray-800 hover:bg-gray-700 border border-white/20 text-white rounded-lg font-bold transition-all active:scale-95"
           >
             Home
           </button>
@@ -219,8 +219,10 @@ export const SolitaireHUD = memo(() => {
       </AnimatePresence>
 
       {gamePhase === 'playing' && (
-        <div className="absolute top-4 left-1/2 -translate-x-1/2 flex flex-col items-center gap-3 z-10">
-          <StatsPanel />
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 flex flex-col items-center gap-3 z-10 pointer-events-auto">
+          <div className="px-6 py-3 rounded-xl backdrop-blur-md bg-gray-900/90 border border-white/10 shadow-lg">
+            <StatsPanel />
+          </div>
           <ActionButtons />
         </div>
       )}
