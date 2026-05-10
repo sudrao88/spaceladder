@@ -3,8 +3,13 @@ import { persist } from 'zustand/middleware';
 import { secureRandom } from '../utils/random';
 import { hasServiceWorkerUpdate, checkForServiceWorkerUpdate } from '../utils/swUpdateManager';
 
-const APP_VERSION_KEY = 'wormhole-warp-version';
-const STORAGE_KEY = 'wormhole-warp-storage';
+const APP_VERSION_KEY = 'space-ladders-version';
+const STORAGE_KEY = 'space-ladders-storage';
+
+if (typeof window !== 'undefined' && window.localStorage) {
+  localStorage.removeItem('wormhole-warp-version');
+  localStorage.removeItem('wormhole-warp-storage');
+}
 
 /**
  * Called at the start of every new game. If a newer build has been deployed

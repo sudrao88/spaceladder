@@ -119,7 +119,7 @@ export const PlayerInitials = memo(() => {
     <div className="absolute inset-0 z-10 flex flex-col items-center overflow-y-auto bg-black/80 text-white backdrop-blur-sm pointer-events-auto">
       <div className="my-auto flex flex-col items-center py-8 px-4 w-full">
         <h1 className="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-purple-600 mb-2 neon-text">
-          WORMHOLE WARP
+          SPACE & LADDERS
         </h1>
         <p className="text-gray-400 mb-6 text-sm">
           {phase === 'input' && 'Enter your initials (up to 3 letters)'}

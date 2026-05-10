@@ -56,7 +56,7 @@ const SetupScreen = memo(() => {
   return (
     <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-black/80 text-white backdrop-blur-sm pointer-events-auto">
       <h1 className="text-6xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-purple-600 mb-8 neon-text">
-        WORMHOLE WARP
+        SPACE & LADDERS
       </h1>
       <div className="flex gap-4 mb-8" role="group" aria-label="Select number of players">
         {[2, 3, 4].map((num, i) => (

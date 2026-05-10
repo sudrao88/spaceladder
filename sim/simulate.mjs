@@ -1,5 +1,5 @@
 /**
- * Wormhole Warp — Game Simulation
+ * Space & Ladders — Game Simulation
  *
  * Runs thousands of games with both the OLD (static) and NEW (dynamic rubber-band)
  * wormhole logic, then prints comparative statistics:

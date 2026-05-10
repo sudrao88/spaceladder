@@ -14,8 +14,8 @@ export default defineConfig({
       injectRegister: false,
       includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg', 'vite.svg'],
       manifest: {
-        name: 'Wormhole Warp',
-        short_name: 'Wormhole',
+        name: 'Space & Ladders',
+        short_name: 'SpaceLadders',
         description: 'A neon cyberpunk board game in the void.',
         theme_color: '#050510',
         background_color: '#050510',

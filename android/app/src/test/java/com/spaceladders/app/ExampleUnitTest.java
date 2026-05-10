@@ -1,4 +1,4 @@
-package com.wormholewarp.app;
+package com.spaceladders.app;
 
 import static org.junit.Assert.*;
 
