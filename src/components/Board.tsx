@@ -7,11 +7,11 @@ const BOARD_OFFSET_Y = 0;
 const TILE_HALF = TILE_SIZE / 2;
 const BORDER_THICKNESS = 0.05;
 
-const BRIGHT_COSMIC_COLORS = [
-  new THREE.Color('#0066ff'), // Bright Electric Blue
-  new THREE.Color('#7000ff'), // Electric Purple
-  new THREE.Color('#00f2ff'), // Vivid Cyan
-  new THREE.Color('#ff00e5'), // Hot Pink
+const NEBULA_COSMIC_COLORS = [
+  new THREE.Color('#3d5e9c'), // Soft Nebula Blue
+  new THREE.Color('#5a3d9c'), // Soft Nebula Purple
+  new THREE.Color('#3d8a92'), // Soft Nebula Cyan
+  new THREE.Color('#9c3d8a'), // Soft Nebula Magenta
 ];
 
 export const Board = memo(() => {
@@ -31,7 +31,7 @@ export const Board = memo(() => {
         tempObject.scale.set(1, 1, 1);
         tempObject.updateMatrix();
         tileMeshRef.current!.setMatrixAt(i, tempObject.matrix);
-        tileMeshRef.current!.setColorAt(i, BRIGHT_COSMIC_COLORS[i % BRIGHT_COSMIC_COLORS.length]);
+        tileMeshRef.current!.setColorAt(i, NEBULA_COSMIC_COLORS[i % NEBULA_COSMIC_COLORS.length]);
 
         // 2. Border Instances (4 per tile)
         const y = BOARD_OFFSET_Y + 0.01;
@@ -75,13 +75,13 @@ export const Board = memo(() => {
       {/* 1. Tiles */}
       <instancedMesh ref={tileMeshRef} args={[undefined, undefined, tiles.length]} receiveShadow>
         <planeGeometry args={[TILE_SIZE, TILE_SIZE]} />
-        <meshStandardMaterial color="#ffffff" transparent opacity={0.9} />
+        <meshStandardMaterial color="#ffffff" transparent opacity={0.78} />
       </instancedMesh>
 
       {/* 2. Thicker Borders (Using InstancedMesh for performance and consistent thickness) */}
       <instancedMesh ref={borderMeshRef} args={[undefined, undefined, tiles.length * 4]}>
         <planeGeometry args={[1, 1]} />
-        <meshBasicMaterial color="#ffffff" transparent opacity={0.9} />
+        <meshBasicMaterial color="#a8b8d0" transparent opacity={0.45} />
       </instancedMesh>
 
       {/* 3. Numbers */}
@@ -91,7 +91,7 @@ export const Board = memo(() => {
           position={[tile.x, BOARD_OFFSET_Y + 0.02, tile.z]}
           rotation={[-Math.PI / 2, 0, 0]}
           fontSize={0.25}
-          color="#ffffff"
+          color="#dbe4f0"
           anchorX="center"
           anchorY="middle"
         >
