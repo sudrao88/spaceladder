@@ -2,7 +2,7 @@
  * Classic Snakes & Ladders — Game Simulation
  *
  * Simulates the traditional 10x10 board game with fixed snakes and ladders
- * (no wormholes). Reports the same statistics as the main Wormhole Warp
+ * (no wormholes). Reports the same statistics as the main Space & Ladders
  * simulation for easy comparison.
  *
  * Rules:

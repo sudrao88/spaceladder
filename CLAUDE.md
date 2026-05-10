@@ -1,8 +1,8 @@
-# CLAUDE.md - AI Assistant Guide for Wormhole Warp
+# CLAUDE.md - AI Assistant Guide for Space & Ladders
 
 ## Project Overview
 
-**Wormhole Warp** is a 3D web-based board game built with React and Three.js. It reimagines Snakes & Ladders with a space/cyberpunk theme: players roll dice to move across a 10x10 grid, with a 25% chance of triggering random "wormhole" teleportation on each tile. First player to reach Tile 100 wins.
+**Space & Ladders** is a 3D web-based board game built with React and Three.js. It reimagines Snakes & Ladders with a space/cyberpunk theme: players roll dice to move across a 10x10 grid, with a 25% chance of triggering random "wormhole" teleportation on each tile. First player to reach Tile 100 wins.
 
 ## Tech Stack
 
@@ -10,7 +10,7 @@
 - **Build Tool:** Vite 7
 - **3D Engine:** Three.js via @react-three/fiber and @react-three/drei
 - **Animation:** @react-spring/three (player movement, dice), Framer Motion (UI)
-- **State Management:** Zustand 5 with persist middleware (localStorage key: `wormhole-warp-storage`)
+- **State Management:** Zustand 5 with persist middleware (localStorage key: `space-ladders-storage`)
 - **Styling:** Tailwind CSS 3 (utility classes for HUD/UI), inline Three.js materials for 3D objects
 - **PWA:** vite-plugin-pwa with workbox precaching
 

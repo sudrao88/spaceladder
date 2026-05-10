@@ -1,8 +1,8 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'com.wormholewarp.app',
-  appName: 'Wormhole Warp',
+  appId: 'com.spaceladders.app',
+  appName: 'Space & Ladders',
   webDir: 'dist',
   backgroundColor: '#050510',
   plugins: {
