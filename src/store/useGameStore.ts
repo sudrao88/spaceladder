@@ -6,6 +6,11 @@ import { hasServiceWorkerUpdate, checkForServiceWorkerUpdate } from '../utils/sw
 const APP_VERSION_KEY = 'space-ladders-version';
 const STORAGE_KEY = 'space-ladders-storage';
 
+if (typeof window !== 'undefined' && window.localStorage) {
+  localStorage.removeItem('wormhole-warp-version');
+  localStorage.removeItem('wormhole-warp-storage');
+}
+
 /**
  * Called at the start of every new game. If a newer build has been deployed
  * (detected via service-worker update or a changed build-time version stamp),
