@@ -14,6 +14,11 @@ const NEBULA_COSMIC_COLORS = [
   new THREE.Color('#9c3d8a'), // Soft Nebula Magenta
 ];
 
+const TILE_OPACITY = 0.78;
+const BORDER_COLOR = '#a8b8d0';
+const BORDER_OPACITY = 0.45;
+const TEXT_COLOR = '#dbe4f0';
+
 export const Board = memo(() => {
   const tiles = useMemo(() => getBoardTiles(), []);
   const tileMeshRef = useRef<THREE.InstancedMesh>(null);
@@ -75,13 +80,13 @@ export const Board = memo(() => {
       {/* 1. Tiles */}
       <instancedMesh ref={tileMeshRef} args={[undefined, undefined, tiles.length]} receiveShadow>
         <planeGeometry args={[TILE_SIZE, TILE_SIZE]} />
-        <meshStandardMaterial color="#ffffff" transparent opacity={0.78} />
+        <meshStandardMaterial color="#ffffff" transparent opacity={TILE_OPACITY} />
       </instancedMesh>
 
       {/* 2. Thicker Borders (Using InstancedMesh for performance and consistent thickness) */}
       <instancedMesh ref={borderMeshRef} args={[undefined, undefined, tiles.length * 4]}>
         <planeGeometry args={[1, 1]} />
-        <meshBasicMaterial color="#a8b8d0" transparent opacity={0.45} />
+        <meshBasicMaterial color={BORDER_COLOR} transparent opacity={BORDER_OPACITY} />
       </instancedMesh>
 
       {/* 3. Numbers */}
@@ -91,7 +96,7 @@ export const Board = memo(() => {
           position={[tile.x, BOARD_OFFSET_Y + 0.02, tile.z]}
           rotation={[-Math.PI / 2, 0, 0]}
           fontSize={0.25}
-          color="#dbe4f0"
+          color={TEXT_COLOR}
           anchorX="center"
           anchorY="middle"
         >
