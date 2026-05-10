@@ -7,9 +7,20 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "cap:sync": "npm run build && cap sync",
+    "cap:android": "npm run build && cap sync android && cap open android",
+    "cap:ios": "npm run build && cap sync ios && cap open ios",
+    "cap:assets": "capacitor-assets generate --android --ios"
   },
   "dependencies": {
+    "@capacitor/android": "^8.3.3",
+    "@capacitor/app": "^8.1.0",
+    "@capacitor/core": "^8.3.3",
+    "@capacitor/ios": "^8.3.3",
+    "@capacitor/screen-orientation": "^8.0.1",
+    "@capacitor/splash-screen": "^8.0.1",
+    "@capacitor/status-bar": "^8.0.2",
     "@react-spring/three": "^10.0.3",
     "@react-spring/web": "^10.0.3",
     "@react-three/drei": "^10.7.7",
@@ -23,6 +34,8 @@
     "zustand": "^5.0.10"
   },
   "devDependencies": {
+    "@capacitor/assets": "^3.0.5",
+    "@capacitor/cli": "^8.3.3",
     "@eslint/js": "^9.39.1",
     "@types/node": "^24.10.1",
     "@types/react": "^19.2.5",
