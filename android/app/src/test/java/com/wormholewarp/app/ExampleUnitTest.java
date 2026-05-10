@@ -1,4 +1,4 @@
-package com.getcapacitor.myapp;
+package com.wormholewarp.app;
 
 import static org.junit.Assert.*;
 
