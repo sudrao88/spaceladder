@@ -1,4 +1,4 @@
-package com.wormholewarp.app;
+package com.spaceladders.app;
 
 import static org.junit.Assert.*;
 
@@ -21,6 +21,6 @@ public class ExampleInstrumentedTest {
         // Context of the app under test.
         Context appContext = InstrumentationRegistry.getInstrumentation().getTargetContext();
 
-        assertEquals("com.wormholewarp.app", appContext.getPackageName());
+        assertEquals("com.spaceladders.app", appContext.getPackageName());
     }
 }
