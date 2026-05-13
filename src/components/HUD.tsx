@@ -6,6 +6,7 @@ import { CollisionDialog } from './CollisionDialog';
 import { MathChallengeDialog } from './MathChallengeDialog';
 import { PlayerInitials } from './PlayerInitials';
 import { Dice } from './Dice';
+import { CastButton } from './CastButton';
 import { useGameStore } from '../store/useGameStore';
 import { PLAYER_EMOJIS } from '../utils/boardUtils';
 
@@ -327,7 +328,7 @@ const SettingsButton = memo(() => {
 
     return (
         <>
-            <div className="absolute top-4 right-4 pointer-events-auto z-50" ref={menuRef}>
+            <div className="relative pointer-events-auto" ref={menuRef}>
                 <button
                     onClick={() => setIsMenuOpen(prev => !prev)}
                     className="p-2 bg-gray-800/80 hover:bg-gray-700 text-white rounded-full shadow-lg border border-white/20 transition-all flex items-center justify-center"
@@ -465,26 +466,54 @@ const SettingsButton = memo(() => {
 SettingsButton.displayName = 'SettingsButton';
 
 
+// Persistent top-right cluster: Cast + Settings. Rendered on every screen
+// (setup, initials, playing, finished) so users can start/stop casting at
+// any point in the game flow.
+const TopRightControls = memo(() => (
+  <div className="absolute top-4 right-4 z-50 flex items-center gap-2 pointer-events-auto">
+    <CastButton />
+    <SettingsButton />
+  </div>
+));
+
+TopRightControls.displayName = 'TopRightControls';
+
+
 export const HUD = memo(() => {
   const gameStatus = useGameStore(selectGameStatus);
   const currentPlayerIndex = useGameStore(selectCurrentPlayerIndex);
 
   if (gameStatus === 'setup') {
-    return <SetupScreen />;
+    return (
+      <>
+        <SetupScreen />
+        <TopRightControls />
+      </>
+    );
   }
 
   if (gameStatus === 'initials') {
-    return <PlayerInitials />;
+    return (
+      <>
+        <PlayerInitials />
+        <TopRightControls />
+      </>
+    );
   }
 
   if (gameStatus === 'finished') {
-    return <FinishedScreen />;
+    return (
+      <>
+        <FinishedScreen />
+        <TopRightControls />
+      </>
+    );
   }
 
   return (
     <div className="absolute inset-0 z-10 pointer-events-none">
       <PlayerList currentPlayerIndex={currentPlayerIndex} />
-      <SettingsButton />
+      <TopRightControls />
       <DicePanel />
       <MathChallengeDialog />
       <WormholeDialog />

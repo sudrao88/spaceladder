@@ -1,4 +1,4 @@
-import { memo, Suspense, useRef } from 'react';
+import { memo, Suspense, useEffect, useRef } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrthographicCamera } from '@react-three/drei';
 import { Board } from './components/Board';
@@ -9,6 +9,8 @@ import { useGameStore } from './store/useGameStore';
 import { GameController } from './hooks/useGameController';
 import { CameraController } from './components/CameraController';
 import { CanvasErrorBoundary } from './components/ErrorBoundary';
+import { initCastSender } from './cast/sender/castContext';
+import { startCastSync } from './cast/sender/syncBridge';
 
 // Granular selector — only re-renders when players array reference changes
 const selectPlayers = (s: ReturnType<typeof useGameStore.getState>) => s.players;
@@ -52,6 +54,14 @@ const LoadingFallback = () => (
 
 function App() {
   const containerRef = useRef<HTMLDivElement>(null!);
+
+  useEffect(() => {
+    void initCastSender();
+    const stopSync = startCastSync();
+    return () => {
+      stopSync();
+    };
+  }, []);
 
   return (
     // Changed bg-gray-900 to bg-black for pitch black background
