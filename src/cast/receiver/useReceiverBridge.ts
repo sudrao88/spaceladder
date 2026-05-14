@@ -35,10 +35,12 @@ export function useReceiverBridge() {
           return;
         }
 
-        if (typeof msg.seq === 'number') {
-          if (msg.seq <= lastSeq) return;
-          lastSeq = msg.seq;
+        // Snapshots are always authoritative — accept them even if their seq
+        // looks "old" (e.g. the sender refreshed and reset its counter).
+        if (msg.type !== 'STATE_SNAPSHOT' && typeof msg.seq === 'number' && msg.seq <= lastSeq) {
+          return;
         }
+        if (typeof msg.seq === 'number') lastSeq = msg.seq;
 
         if (msg.payload) {
           useGameStore.setState(msg.payload as Partial<ReturnType<typeof useGameStore.getState>>);
@@ -52,11 +54,7 @@ export function useReceiverBridge() {
     context.start({ disableIdleTimeout: true });
 
     return () => {
-      try {
-        context.stop();
-      } catch {
-        // start/stop pairing isn't guaranteed by the SDK during HMR; ignore.
-      }
+      context.removeCustomMessageListener(NAMESPACE, handler);
     };
   }, []);
 }

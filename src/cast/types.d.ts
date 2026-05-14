@@ -125,8 +125,11 @@ declare global {
       namespace: string,
       listener: (event: CustomMessageEvent) => void,
     ) => void;
+    removeCustomMessageListener: (
+      namespace: string,
+      listener: (event: CustomMessageEvent) => void,
+    ) => void;
     addEventListener: (type: string, listener: (event: unknown) => void) => void;
     start: (options?: CastReceiverContextOptions) => void;
-    stop: () => void;
   }
 }

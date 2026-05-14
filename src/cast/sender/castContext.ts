@@ -141,7 +141,9 @@ export function sendCastMessage(payload: unknown): boolean {
   const session = castRef.framework.CastContext.getInstance().getCurrentSession();
   if (!session) return false;
   try {
-    void session.sendMessage(NAMESPACE, JSON.stringify(payload));
+    session.sendMessage(NAMESPACE, JSON.stringify(payload)).catch((err) => {
+      console.warn('[cast] sendMessage rejected', err);
+    });
     return true;
   } catch (err) {
     console.warn('[cast] sendMessage failed', err);
