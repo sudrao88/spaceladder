@@ -484,11 +484,11 @@ export const useGameStore = create<GameState>()(
 
         // Rolling a 6 grants the same player another turn. Surface a dialog so the
         // next player doesn't roll by mistake; the player advances only after they
-        // acknowledge via acknowledgeExtraTurn().
+        // acknowledge via acknowledgeExtraTurn(). The turn lock stays held until
+        // then so a stray dice click/keypress can't fire a new roll behind the dialog.
         if (diceValue === 6) {
             set({
                 pendingExtraTurn: { playerId: currentPlayer.id },
-                isTurnProcessing: false,
             });
             return;
         }
@@ -511,6 +511,7 @@ export const useGameStore = create<GameState>()(
         set((state) => ({
             pendingExtraTurn: null,
             diceValue: null,
+            isTurnProcessing: false,
             turnNumber: state.turnNumber + 1,
             shouldFollowPlayer: false,
             shouldResetCamera: true,
