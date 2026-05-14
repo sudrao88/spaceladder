@@ -3,6 +3,7 @@ import { Canvas } from '@react-three/fiber';
 import { motion, AnimatePresence } from 'framer-motion';
 import { WormholeDialog } from './WormholeDialog';
 import { CollisionDialog } from './CollisionDialog';
+import { ExtraTurnDialog } from './ExtraTurnDialog';
 import { MathChallengeDialog } from './MathChallengeDialog';
 import { PlayerInitials } from './PlayerInitials';
 import { Dice } from './Dice';
@@ -518,6 +519,7 @@ export const HUD = memo(() => {
       <MathChallengeDialog />
       <WormholeDialog />
       <CollisionDialog />
+      <ExtraTurnDialog />
       <ResetViewButton />
     </div>
   );
