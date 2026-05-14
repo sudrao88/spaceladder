@@ -89,6 +89,10 @@ export interface PendingMathChallenge {
   startTime: number; // Date.now() when challenge was shown
 }
 
+export interface PendingExtraTurn {
+  playerId: number;
+}
+
 export interface MathSettings {
   countdownSeconds: number;       // total countdown timer (default 60)
   shieldThresholdSeconds: number; // time within which answering earns a shield (default 7)
@@ -109,6 +113,7 @@ interface GameState {
   winner: Player | null;
   pendingWormhole: PendingWormhole | null;
   pendingCollision: PendingCollision | null;
+  pendingExtraTurn: PendingExtraTurn | null;
   wormholeHistory: WormholeEvent[];
   playerInitials: Record<number, string>;
 
@@ -138,6 +143,7 @@ interface GameState {
   executeTeleport: () => void;
   checkAndHandleCollision: (playerId: number) => boolean;
   executeCollision: () => void;
+  acknowledgeExtraTurn: () => void;
   nextTurn: () => void;
   setMoving: (playerId: number, isMoving: boolean) => void;
   resetGame: () => void;
@@ -175,6 +181,7 @@ export const useGameStore = create<GameState>()(
       winner: null,
       pendingWormhole: null,
       pendingCollision: null,
+      pendingExtraTurn: null,
       wormholeHistory: [],
       playerInitials: {},
       mathModeEnabled: false,
@@ -209,6 +216,7 @@ export const useGameStore = create<GameState>()(
           isTurnProcessing: false,
           pendingWormhole: null,
           pendingCollision: null,
+          pendingExtraTurn: null,
           wormholeHistory: [],
           playerInitials: {},
           mathModeEnabled: mathMode ?? false,
@@ -460,7 +468,7 @@ export const useGameStore = create<GameState>()(
       },
 
       nextTurn: () => {
-        const { players, currentPlayerIndex } = get();
+        const { players, currentPlayerIndex, diceValue } = get();
         const currentPlayer = players[currentPlayerIndex];
 
         if (!currentPlayer) {
@@ -471,6 +479,17 @@ export const useGameStore = create<GameState>()(
         // Check win condition
         if (currentPlayer.position === 100) {
             set({ gameStatus: 'finished', winner: currentPlayer, isTurnProcessing: false });
+            return;
+        }
+
+        // Rolling a 6 grants the same player another turn. Surface a dialog so the
+        // next player doesn't roll by mistake; the player advances only after they
+        // acknowledge via acknowledgeExtraTurn().
+        if (diceValue === 6) {
+            set({
+                pendingExtraTurn: { playerId: currentPlayer.id },
+                isTurnProcessing: false,
+            });
             return;
         }
 
@@ -488,6 +507,17 @@ export const useGameStore = create<GameState>()(
         }));
       },
 
+      acknowledgeExtraTurn: () => {
+        set((state) => ({
+            pendingExtraTurn: null,
+            diceValue: null,
+            turnNumber: state.turnNumber + 1,
+            shouldFollowPlayer: false,
+            shouldResetCamera: true,
+            isDefaultView: true,
+        }));
+      },
+
       resetGame: () => {
           turnEpoch++;
           set({
@@ -497,6 +527,7 @@ export const useGameStore = create<GameState>()(
             diceValue: null,
             pendingWormhole: null,
             pendingCollision: null,
+            pendingExtraTurn: null,
             wormholeHistory: [],
             playerInitials: {},
             mathModeEnabled: false,
