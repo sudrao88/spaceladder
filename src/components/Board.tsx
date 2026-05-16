@@ -14,7 +14,7 @@ const NEBULA_COSMIC_COLORS = [
   new THREE.Color('#9c3d8a'), // Soft Nebula Magenta
 ];
 
-const TILE_OPACITY = 0.78;
+const TILE_OPACITY = 1;
 const BORDER_COLOR = '#a8b8d0';
 const BORDER_OPACITY = 0.45;
 const TEXT_COLOR = '#dbe4f0';
@@ -80,7 +80,7 @@ export const Board = memo(() => {
       {/* 1. Tiles */}
       <instancedMesh ref={tileMeshRef} args={[undefined, undefined, tiles.length]} receiveShadow>
         <planeGeometry args={[TILE_SIZE, TILE_SIZE]} />
-        <meshStandardMaterial color="#ffffff" transparent opacity={TILE_OPACITY} />
+        <meshStandardMaterial color="#ffffff" opacity={TILE_OPACITY} />
       </instancedMesh>
 
       {/* 2. Thicker Borders (Using InstancedMesh for performance and consistent thickness) */}

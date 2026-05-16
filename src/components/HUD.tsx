@@ -427,7 +427,7 @@ const SettingsButton = memo(() => {
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
-                    className="absolute inset-0 z-[70] flex items-center justify-center bg-black/70 backdrop-blur-sm pointer-events-auto"
+                    className="fixed inset-0 z-[70] flex items-center justify-center bg-black/70 backdrop-blur-sm pointer-events-auto p-4"
                   >
                       <motion.div 
                         initial={{ scale: 0.9, opacity: 0 }}
