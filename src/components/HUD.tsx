@@ -209,9 +209,11 @@ const DicePanel = memo(() => {
             gl={{ antialias: true }}
             style={{ width: '100%', height: '100%' }}
           >
-            <ambientLight intensity={0.5} />
-            <pointLight position={[5, 5, 5]} intensity={1} />
-            <pointLight position={[-5, -5, -5]} intensity={0.5} />
+            {/* Moon-lit setup: low cool ambient, one strong warm "sun" from upper-right,
+                a soft cyan rim from the back-left for cyberpunk atmosphere. */}
+            <ambientLight intensity={0.22} color="#3a4760" />
+            <directionalLight position={[5, 5, 3]} intensity={1.5} color="#fff5e0" />
+            <directionalLight position={[-4, 2, -3]} intensity={0.55} color="#7dd3fc" />
             <Dice value={diceValue} isRolling={isRolling} />
           </Canvas>
         </div>

@@ -1,15 +1,47 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <circle cx="256" cy="256" r="256" fill="#050510"/>
-  <!-- Rocket body -->
-  <path d="M256 120 C256 120 220 200 220 300 L292 300 C292 200 256 120 256 120Z" fill="#e0e5f0"/>
-  <!-- Nose cone highlight -->
-  <path d="M256 120 C256 120 238 170 234 200 L278 200 C274 170 256 120 256 120Z" fill="#f0f2ff"/>
-  <!-- Window -->
-  <circle cx="256" cy="240" r="18" fill="#06b6d4"/>
-  <!-- Fins -->
-  <path d="M220 280 L195 320 L220 310Z" fill="#06b6d4"/>
-  <path d="M292 280 L317 320 L292 310Z" fill="#06b6d4"/>
-  <!-- Flame -->
-  <path d="M230 300 L256 380 L282 300Z" fill="#f59e0b"/>
-  <path d="M238 300 L256 360 L274 300Z" fill="#ef4444"/>
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="50%" r="60%">
+      <stop offset="0%" stop-color="#0b0b24"/>
+      <stop offset="100%" stop-color="#050510"/>
+    </radialGradient>
+    <linearGradient id="ring" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#06b6d4"/>
+      <stop offset="100%" stop-color="#a855f7"/>
+    </linearGradient>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="6" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
+  <circle cx="256" cy="256" r="232" fill="none" stroke="url(#ring)" stroke-width="6" opacity="0.55"/>
+
+  <circle cx="402" cy="120" r="2.5" fill="#ffffff" opacity="0.8"/>
+  <circle cx="92"  cy="150" r="2"   fill="#ffffff" opacity="0.7"/>
+  <circle cx="117" cy="395" r="2.5" fill="#ffffff" opacity="0.8"/>
+  <circle cx="377" cy="385" r="2"   fill="#ffffff" opacity="0.6"/>
+  <circle cx="432" cy="260" r="1.8" fill="#ffffff" opacity="0.6"/>
+
+  <!--
+    Single tilted rocket, centered.
+    Rocket body length 200 (nose at y=-100, base at y=100), flame to y=160.
+    Composition is mirror-symmetric except the window highlight, which sits on the right cheek
+    to preserve the visual orientation from the previous (mirrored) icon.
+  -->
+  <g transform="translate(256 256) rotate(22) scale(1.55)" filter="url(#glow)">
+    <!-- Flame -->
+    <path d="M-24 100 L0 160 L24 100 Z" fill="#f59e0b"/>
+    <path d="M-16 100 L0 145 L16 100 Z" fill="#ef4444"/>
+    <!-- Body -->
+    <path d="M0 -100 C0 -100 -38 -15 -38 100 L38 100 C38 -15 0 -100 0 -100 Z" fill="#e8ecf6"/>
+    <!-- Nose highlight -->
+    <path d="M0 -100 C0 -100 -16 -45 -20 -5 L20 -5 C16 -45 0 -100 0 -100 Z" fill="#ffffff"/>
+    <!-- Window -->
+    <circle cx="0" cy="20" r="20" fill="#06b6d4" stroke="#0e7490" stroke-width="4"/>
+    <circle cx="6" cy="14" r="6" fill="#ffffff" opacity="0.85"/>
+    <!-- Fins -->
+    <path d="M-38 80 L-68 130 L-38 110 Z" fill="#06b6d4"/>
+    <path d="M38 80  L68 130  L38 110 Z"  fill="#06b6d4"/>
+  </g>
 </svg>
