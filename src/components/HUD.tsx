@@ -257,7 +257,7 @@ const MathModeIntro = memo(({ onClose }: { onClose: () => void }) => (
     initial={{ opacity: 0, scale: 0.9 }}
     animate={{ opacity: 1, scale: 1 }}
     exit={{ opacity: 0, scale: 0.9 }}
-    className="absolute inset-0 z-[60] flex items-center justify-center bg-black/70 backdrop-blur-md pointer-events-auto"
+    className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 backdrop-blur-md pointer-events-auto p-4"
   >
     <div className="bg-gray-900 border border-cyan-500/50 rounded-2xl p-8 max-w-md w-full shadow-[0_0_50px_rgba(6,182,212,0.2)]">
       <div className="flex items-center gap-4 mb-6">
