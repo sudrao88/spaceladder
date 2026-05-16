@@ -134,7 +134,13 @@ const PlayerList = memo(({ currentPlayerIndex }: PlayerListProps) => {
   const mathModeEnabled = useGameStore(selectMathModeEnabled);
 
   return (
-    <div className="absolute top-4 left-4 flex flex-col gap-3 pointer-events-auto">
+    <div
+      className="absolute flex flex-col gap-3 pointer-events-auto"
+      style={{
+        top: 'calc(1rem + env(safe-area-inset-top))',
+        left: 'calc(1rem + env(safe-area-inset-left))',
+      }}
+    >
       {players.map((p, idx) => {
         const shields = playerShields[p.id] || 0;
         return (
@@ -473,7 +479,13 @@ SettingsButton.displayName = 'SettingsButton';
 // (setup, initials, playing, finished) so users can start/stop casting at
 // any point in the game flow.
 const TopRightControls = memo(() => (
-  <div className="absolute top-4 right-4 z-50 flex items-center gap-2 pointer-events-auto">
+  <div
+    className="absolute z-50 flex items-center gap-2 pointer-events-auto"
+    style={{
+      top: 'calc(1rem + env(safe-area-inset-top))',
+      right: 'calc(1rem + env(safe-area-inset-right))',
+    }}
+  >
     <CastButton />
     <SettingsButton />
   </div>
