@@ -12,6 +12,22 @@ dist
 dist-ssr
 *.local
 
+# Env files (Cast App ID etc.)
+.env
+.env.*
+!.env.example
+
+# Firebase
+.firebase/
+firebase-debug.log
+firebase-debug.*.log
+.runtimeconfig.json
+
+# Android signing
+android/keystore.properties
+android/app/*.jks
+android/app/*.keystore
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

@@ -134,7 +134,13 @@ const PlayerList = memo(({ currentPlayerIndex }: PlayerListProps) => {
   const mathModeEnabled = useGameStore(selectMathModeEnabled);
 
   return (
-    <div className="absolute top-4 left-4 flex flex-col gap-3 pointer-events-auto">
+    <div
+      className="absolute flex flex-col gap-3 pointer-events-auto"
+      style={{
+        top: 'calc(1rem + env(safe-area-inset-top))',
+        left: 'calc(1rem + env(safe-area-inset-left))',
+      }}
+    >
       {players.map((p, idx) => {
         const shields = playerShields[p.id] || 0;
         return (
@@ -209,9 +215,11 @@ const DicePanel = memo(() => {
             gl={{ antialias: true }}
             style={{ width: '100%', height: '100%' }}
           >
-            <ambientLight intensity={0.5} />
-            <pointLight position={[5, 5, 5]} intensity={1} />
-            <pointLight position={[-5, -5, -5]} intensity={0.5} />
+            {/* Moon-lit setup: low cool ambient, one strong warm "sun" from upper-right,
+                a soft cyan rim from the back-left for cyberpunk atmosphere. */}
+            <ambientLight intensity={0.22} color="#3a4760" />
+            <directionalLight position={[5, 5, 3]} intensity={1.5} color="#fff5e0" />
+            <directionalLight position={[-4, 2, -3]} intensity={0.55} color="#7dd3fc" />
             <Dice value={diceValue} isRolling={isRolling} />
           </Canvas>
         </div>
@@ -249,7 +257,7 @@ const MathModeIntro = memo(({ onClose }: { onClose: () => void }) => (
     initial={{ opacity: 0, scale: 0.9 }}
     animate={{ opacity: 1, scale: 1 }}
     exit={{ opacity: 0, scale: 0.9 }}
-    className="absolute inset-0 z-[60] flex items-center justify-center bg-black/70 backdrop-blur-md pointer-events-auto"
+    className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 backdrop-blur-md pointer-events-auto p-4"
   >
     <div className="bg-gray-900 border border-cyan-500/50 rounded-2xl p-8 max-w-md w-full shadow-[0_0_50px_rgba(6,182,212,0.2)]">
       <div className="flex items-center gap-4 mb-6">
@@ -427,7 +435,7 @@ const SettingsButton = memo(() => {
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
-                    className="absolute inset-0 z-[70] flex items-center justify-center bg-black/70 backdrop-blur-sm pointer-events-auto"
+                    className="fixed inset-0 z-[70] flex items-center justify-center bg-black/70 backdrop-blur-sm pointer-events-auto p-4"
                   >
                       <motion.div 
                         initial={{ scale: 0.9, opacity: 0 }}
@@ -471,7 +479,13 @@ SettingsButton.displayName = 'SettingsButton';
 // (setup, initials, playing, finished) so users can start/stop casting at
 // any point in the game flow.
 const TopRightControls = memo(() => (
-  <div className="absolute top-4 right-4 z-50 flex items-center gap-2 pointer-events-auto">
+  <div
+    className="absolute z-50 flex items-center gap-2 pointer-events-auto"
+    style={{
+      top: 'calc(1rem + env(safe-area-inset-top))',
+      right: 'calc(1rem + env(safe-area-inset-right))',
+    }}
+  >
     <CastButton />
     <SettingsButton />
   </div>
