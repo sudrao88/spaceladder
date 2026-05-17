@@ -2,12 +2,18 @@ import { useCallback, useRef } from 'react';
 import { useGameStore } from '../store/useGameStore';
 import type { Player, WormholeEvent, WormholeType } from '../store/useGameStore';
 import { secureRandom, secureRandomInt } from '../utils/random';
+import { generateMathChallenge } from '../utils/mathChallenge';
+
+// Probability of intercepting a wormhole with a math challenge when math
+// mode is on and no math question has been asked yet this turn.
+const WORMHOLE_MATH_CHANCE = 0.6;
 
 // Granular selectors — subscribe only to what the controller needs
 const selectSetMoving = (s: ReturnType<typeof useGameStore.getState>) => s.setMoving;
 const selectNextTurn = (s: ReturnType<typeof useGameStore.getState>) => s.nextTurn;
 const selectSetPendingWormhole = (s: ReturnType<typeof useGameStore.getState>) => s.setPendingWormhole;
 const selectAddWormholeEvent = (s: ReturnType<typeof useGameStore.getState>) => s.addWormholeEvent;
+const selectSetPendingMathChallenge = (s: ReturnType<typeof useGameStore.getState>) => s.setPendingMathChallenge;
 
 /** Inclusive random integer in [min, max] */
 const randomInt = secureRandomInt;
@@ -293,7 +299,8 @@ export const GameController = () => {
   const nextTurn = useGameStore(selectNextTurn);
   const setPendingWormhole = useGameStore(selectSetPendingWormhole);
   const addWormholeEvent = useGameStore(selectAddWormholeEvent);
-  
+  const setPendingMathChallenge = useGameStore(selectSetPendingMathChallenge);
+
   // Use a ref to debounce collision checks
   const processingRef = useRef<Set<number>>(new Set());
 
@@ -386,9 +393,35 @@ export const GameController = () => {
     };
     addWormholeEvent(event);
 
+    // If math mode is on and no challenge has fired this turn, gate the
+    // wormhole on a math question instead of opening the dialog directly.
+    const { mathModeEnabled, mathChallengeUsedThisTurn, diceValue } = useGameStore.getState();
+    const triggerMath = mathModeEnabled
+      && !mathChallengeUsedThisTurn
+      && secureRandom() < WORMHOLE_MATH_CHANCE;
+
+    if (triggerMath) {
+      const op = generateMathChallenge(currentTile, destination);
+      setPendingMathChallenge({
+        playerId: player.id,
+        context: 'wormhole',
+        currentTile,
+        diceValue: diceValue ?? 0,
+        operandA: op.operandA,
+        operandB: op.operandB,
+        operator: op.operator,
+        correctAnswer: op.correctAnswer,
+        startTime: Date.now(),
+        wormholeDestination: destination,
+        wormholeIsBoost: isBoost,
+        wormholeType,
+      });
+      return;
+    }
+
     // Show dialog
     setPendingWormhole({ playerId: player.id, destination, isBoost, wormholeType });
-  }, [nextTurn, setPendingWormhole, addWormholeEvent]);
+  }, [nextTurn, setPendingWormhole, addWormholeEvent, setPendingMathChallenge]);
 
   const handleMovementComplete = useCallback((playerId: number) => {
     // Prevent double-processing

@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { secureRandom } from '../utils/random';
+import { generateMathChallenge } from '../utils/mathChallenge';
 import { hasServiceWorkerUpdate, checkForServiceWorkerUpdate } from '../utils/swUpdateManager';
 
 const APP_VERSION_KEY = 'space-ladders-version';
@@ -81,12 +82,23 @@ export interface PendingCollision {
   loserDestination: number;
 }
 
+export type MathChallengeContext = 'movement' | 'wormhole';
+export type MathOperator = '+' | '-';
+
 export interface PendingMathChallenge {
   playerId: number;
+  context: MathChallengeContext;
   currentTile: number;
   diceValue: number;
+  operandA: number;
+  operandB: number;
+  operator: MathOperator;
   correctAnswer: number;
   startTime: number; // Date.now() when challenge was shown
+  // Wormhole-only context: the wormhole that will or won't fire based on the answer.
+  wormholeDestination?: number;
+  wormholeIsBoost?: boolean;
+  wormholeType?: WormholeType;
 }
 
 export interface PendingExtraTurn {
@@ -129,6 +141,8 @@ interface GameState {
   playerShields: Record<number, number>;
   pendingMathChallenge: PendingMathChallenge | null;
   mathSettings: MathSettings;
+  // At most one math challenge per turn — gates both movement and wormhole.
+  mathChallengeUsedThisTurn: boolean;
 
   // Turn tracking
   turnNumber: number;
@@ -158,7 +172,9 @@ interface GameState {
 
   // Math Mode Actions
   resolveMathChallenge: (earnedShield: boolean, playerId: number, diceValue: number, correct: boolean) => void;
+  setPendingMathChallenge: (challenge: PendingMathChallenge | null) => void;
   useShield: (playerId: number) => void;
+  useShieldOnMathChallenge: () => void;
   setMathSettings: (settings: Partial<MathSettings>) => void;
   toggleMathMode: () => void;
 
@@ -197,6 +213,7 @@ export const useGameStore = create<GameState>()(
       playerShields: {},
       pendingMathChallenge: null,
       mathSettings: DEFAULT_MATH_SETTINGS,
+      mathChallengeUsedThisTurn: false,
       turnNumber: 0,
       isDefaultView: true,
       shouldResetCamera: false,
@@ -232,6 +249,7 @@ export const useGameStore = create<GameState>()(
           mathModeEnabled: mathMode ?? false,
           playerShields: {},
           pendingMathChallenge: null,
+          mathChallengeUsedThisTurn: false,
           turnNumber: 0,
         });
       },
@@ -299,14 +317,20 @@ export const useGameStore = create<GameState>()(
             const shouldChallenge = mathModeEnabled && targetPos < 100 && secureRandom() < 0.3;
 
             if (shouldChallenge) {
+              const op = generateMathChallenge(currentPlayer.position, targetPos);
               set({
                 pendingMathChallenge: {
                   playerId: currentPlayer.id,
+                  context: 'movement',
                   currentTile: currentPlayer.position,
                   diceValue: roll,
-                  correctAnswer: currentPlayer.position + roll,
+                  operandA: op.operandA,
+                  operandB: op.operandB,
+                  operator: op.operator,
+                  correctAnswer: op.correctAnswer,
                   startTime: Date.now(),
                 },
+                mathChallengeUsedThisTurn: true,
               });
               // Movement will be triggered by resolveMathChallenge
               return;
@@ -519,6 +543,7 @@ export const useGameStore = create<GameState>()(
             diceValue: null,
             isTurnProcessing: false,
             turnNumber: state.turnNumber + 1,
+            mathChallengeUsedThisTurn: false,
             shouldFollowPlayer: false,
             shouldResetCamera: true, // Trigger camera reset to default
             isDefaultView: true
@@ -531,6 +556,7 @@ export const useGameStore = create<GameState>()(
             diceValue: null,
             isTurnProcessing: false,
             turnNumber: state.turnNumber + 1,
+            mathChallengeUsedThisTurn: false,
             shouldFollowPlayer: false,
             shouldResetCamera: true,
             isDefaultView: true,
@@ -552,6 +578,7 @@ export const useGameStore = create<GameState>()(
             diceValue: null,
             isTurnProcessing: false,
             turnNumber: state.turnNumber + 1,
+            mathChallengeUsedThisTurn: false,
             shouldFollowPlayer: false,
             shouldResetCamera: true,
             isDefaultView: true,
@@ -574,6 +601,7 @@ export const useGameStore = create<GameState>()(
             mathModeEnabled: false,
             playerShields: {},
             pendingMathChallenge: null,
+            mathChallengeUsedThisTurn: false,
             currentPlayerIndex: 0,
             turnNumber: 0,
             isRolling: false,
@@ -585,9 +613,15 @@ export const useGameStore = create<GameState>()(
       },
 
       resolveMathChallenge: (earnedShield, playerId, diceValue, correct) => {
+        const challenge = get().pendingMathChallenge;
+        if (!challenge) return;
+
+        // Shields are only awarded on movement-context challenges.
+        const grantShield = earnedShield && challenge.context === 'movement';
+
         set((state) => ({
           pendingMathChallenge: null,
-          ...(earnedShield && {
+          ...(grantShield && {
             playerShields: {
               ...state.playerShields,
               [playerId]: (state.playerShields[playerId] || 0) + 1,
@@ -595,13 +629,67 @@ export const useGameStore = create<GameState>()(
           }),
         }));
 
-        if (correct) {
-          // Correct answer: trigger the movement that was deferred
-          get().movePlayer(playerId, diceValue);
-        } else {
-          // Wrong answer or time's up: skip turn
-          get().nextTurn();
+        if (challenge.context === 'movement') {
+          if (correct) {
+            get().movePlayer(playerId, diceValue);
+          } else {
+            get().nextTurn();
+          }
+          return;
         }
+
+        // Wormhole context: outcome is symmetric — correct favours the
+        // player (gain boost, dodge glitch); wrong hurts (lose boost,
+        // get glitched).
+        const destination = challenge.wormholeDestination;
+        const isBoost = challenge.wormholeIsBoost;
+        const wormholeType = challenge.wormholeType;
+
+        if (destination === undefined || isBoost === undefined || wormholeType === undefined) {
+          // Malformed challenge — bail safely to a fresh turn.
+          get().nextTurn();
+          return;
+        }
+
+        if (isBoost) {
+          if (correct) {
+            // Surface the wormhole dialog so the player can trigger the teleport.
+            set({ pendingWormhole: { playerId, destination, isBoost, wormholeType } });
+          } else {
+            // Boost slipped away — stay put.
+            get().nextTurn();
+          }
+          return;
+        }
+
+        // Glitch / gravity-well:
+        if (correct) {
+          // Dodged the glitch — stay put.
+          get().nextTurn();
+        } else {
+          // Slide down without a shield bailout: apply the teleport directly
+          // so the regular WormholeDialog (which would re-offer the shield)
+          // never appears.
+          const { cameraFollowEnabled } = get();
+          set((state) => ({
+            players: state.players.map(p =>
+              p.id === playerId ? { ...p, position: destination } : p
+            ),
+            shouldFollowPlayer: cameraFollowEnabled,
+          }));
+          setTimeout(() => {
+            if (!get().checkAndHandleCollision(playerId)) {
+              get().nextTurn();
+            }
+          }, POST_TELEPORT_DELAY_MS);
+        }
+      },
+
+      setPendingMathChallenge: (challenge) => {
+        set({
+          pendingMathChallenge: challenge,
+          mathChallengeUsedThisTurn: challenge !== null ? true : get().mathChallengeUsedThisTurn,
+        });
       },
 
       useShield: (playerId) => {
@@ -615,6 +703,24 @@ export const useGameStore = create<GameState>()(
         });
 
         // Skip wormhole, proceed to next turn
+        get().nextTurn();
+      },
+
+      useShieldOnMathChallenge: () => {
+        const { pendingMathChallenge, playerShields } = get();
+        if (!pendingMathChallenge) return;
+        if (pendingMathChallenge.context !== 'wormhole') return;
+        if (pendingMathChallenge.wormholeIsBoost !== false) return;
+        const { playerId } = pendingMathChallenge;
+        const shields = playerShields[playerId] || 0;
+        if (shields <= 0) return;
+
+        set({
+          playerShields: { ...playerShields, [playerId]: shields - 1 },
+          pendingMathChallenge: null,
+        });
+
+        // Skipped the question AND the slide — end the turn.
         get().nextTurn();
       },
 
