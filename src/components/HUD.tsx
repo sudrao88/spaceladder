@@ -274,7 +274,10 @@ const MathModeIntro = memo(({ onClose }: { onClose: () => void }) => (
       <div className="space-y-4 text-gray-300 mb-8">
         <p>After a dice roll, you'll sometimes face a math challenge. Solve it correctly to keep moving!</p>
         <p>
-          <span className="text-cyan-400 font-bold">Glitch Shields:</span> Solve the problem quickly (within the bonus time) to earn a shield. Shields automatically block wormhole glitches!
+          <span className="text-cyan-400 font-bold">Wormhole math:</span> Wormholes can also trigger a question. Answer right to grab a boost or dodge a glitch &mdash; answer wrong and the boost slips away or the glitch pulls you down. Only one question per turn.
+        </p>
+        <p>
+          <span className="text-cyan-400 font-bold">Glitch Shields:</span> Solve a movement question quickly (within the bonus time) to earn a shield. Spend it during a glitch &mdash; including before answering a glitch math question &mdash; to skip it entirely.
         </p>
         <p className="text-sm italic text-gray-400">
           Note: You can adjust the challenge timer and shield bonus threshold anytime in the settings menu.
