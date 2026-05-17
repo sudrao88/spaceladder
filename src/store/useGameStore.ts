@@ -93,6 +93,12 @@ export interface PendingExtraTurn {
   playerId: number;
 }
 
+export interface PendingOvershoot {
+  playerId: number;
+  currentTile: number;
+  diceValue: number;
+}
+
 export interface MathSettings {
   countdownSeconds: number;       // total countdown timer (default 60)
   shieldThresholdSeconds: number; // time within which answering earns a shield (default 7)
@@ -114,6 +120,7 @@ interface GameState {
   pendingWormhole: PendingWormhole | null;
   pendingCollision: PendingCollision | null;
   pendingExtraTurn: PendingExtraTurn | null;
+  pendingOvershoot: PendingOvershoot | null;
   wormholeHistory: WormholeEvent[];
   playerInitials: Record<number, string>;
 
@@ -144,6 +151,7 @@ interface GameState {
   checkAndHandleCollision: (playerId: number) => boolean;
   executeCollision: () => void;
   acknowledgeExtraTurn: () => void;
+  acknowledgeOvershoot: () => void;
   nextTurn: () => void;
   setMoving: (playerId: number, isMoving: boolean) => void;
   resetGame: () => void;
@@ -182,6 +190,7 @@ export const useGameStore = create<GameState>()(
       pendingWormhole: null,
       pendingCollision: null,
       pendingExtraTurn: null,
+      pendingOvershoot: null,
       wormholeHistory: [],
       playerInitials: {},
       mathModeEnabled: false,
@@ -217,6 +226,7 @@ export const useGameStore = create<GameState>()(
           pendingWormhole: null,
           pendingCollision: null,
           pendingExtraTurn: null,
+          pendingOvershoot: null,
           wormholeHistory: [],
           playerInitials: {},
           mathModeEnabled: mathMode ?? false,
@@ -322,11 +332,19 @@ export const useGameStore = create<GameState>()(
 
         // Calculate target position
         const targetPos = player.position + steps;
-        
-        // Block if roll exceeds 100
+
+        // Block if roll exceeds 100. Surface a dialog so the player knows the
+        // roll didn't qualify; the turn lock stays held until they acknowledge
+        // via acknowledgeOvershoot(). Note: this path skips the lucky-six
+        // extra-turn grant on purpose — overshooting forfeits any reroll.
         if (targetPos > 100) {
-             // Turn ends immediately if overshot
-             get().nextTurn();
+             set({
+               pendingOvershoot: {
+                 playerId,
+                 currentTile: player.position,
+                 diceValue: steps,
+               },
+             });
              return;
         }
 
@@ -519,6 +537,27 @@ export const useGameStore = create<GameState>()(
         }));
       },
 
+      acknowledgeOvershoot: () => {
+        // Advance to the next player. We deliberately do NOT call nextTurn()
+        // here because an overshoot must forfeit the lucky-six reroll —
+        // nextTurn() would otherwise re-grant the extra turn when diceValue
+        // is 6.
+        const { players, currentPlayerIndex } = get();
+        const nextIndex = players.length > 0
+          ? (currentPlayerIndex + 1) % players.length
+          : 0;
+        set((state) => ({
+            pendingOvershoot: null,
+            currentPlayerIndex: nextIndex,
+            diceValue: null,
+            isTurnProcessing: false,
+            turnNumber: state.turnNumber + 1,
+            shouldFollowPlayer: false,
+            shouldResetCamera: true,
+            isDefaultView: true,
+        }));
+      },
+
       resetGame: () => {
           turnEpoch++;
           set({
@@ -529,6 +568,7 @@ export const useGameStore = create<GameState>()(
             pendingWormhole: null,
             pendingCollision: null,
             pendingExtraTurn: null,
+            pendingOvershoot: null,
             wormholeHistory: [],
             playerInitials: {},
             mathModeEnabled: false,
