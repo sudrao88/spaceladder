@@ -100,28 +100,24 @@ const MathChallengeInner = memo(({ challenge }: MathChallengeInnerProps) => {
     };
   }, [phase, mathSettings.countdownSeconds, challenge.startTime]);
 
+  useEffect(() => {
+    if (phase !== 'input' || digits.length !== answerLength || resolvedRef.current) return;
+
+    const answer = parseInt(digits.join(''), 10);
+    const elapsed = (Date.now() - challenge.startTime) / 1000;
+    const correct = answer === challenge.correctAnswer;
+    const earnedShield = correct && elapsed <= mathSettings.shieldThresholdSeconds;
+
+    resolvedRef.current = true;
+    if (timerRef.current) clearInterval(timerRef.current);
+    setResult({ correct, earnedShield });
+    setPhase('result');
+  }, [digits, phase, answerLength, challenge.startTime, challenge.correctAnswer, mathSettings.shieldThresholdSeconds]);
+
   const handleDigitPress = useCallback((digit: string) => {
     if (phase !== 'input' || resolvedRef.current) return;
-
-    setDigits(prev => {
-      if (prev.length >= answerLength) return prev;
-      const next = [...prev, digit];
-
-      if (next.length === answerLength) {
-        const answer = parseInt(next.join(''), 10);
-        const elapsed = (Date.now() - challenge.startTime) / 1000;
-        const correct = answer === challenge.correctAnswer;
-        const earnedShield = correct && elapsed <= mathSettings.shieldThresholdSeconds;
-
-        resolvedRef.current = true;
-        if (timerRef.current) clearInterval(timerRef.current);
-        setResult({ correct, earnedShield });
-        setPhase('result');
-      }
-
-      return next;
-    });
-  }, [phase, answerLength, challenge.startTime, challenge.correctAnswer, mathSettings.shieldThresholdSeconds]);
+    setDigits(prev => (prev.length >= answerLength ? prev : [...prev, digit]));
+  }, [phase, answerLength]);
 
   const handleClear = useCallback(() => {
     if (phase !== 'input' || resolvedRef.current) return;
